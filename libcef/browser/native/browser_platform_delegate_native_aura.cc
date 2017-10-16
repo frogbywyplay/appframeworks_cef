@@ -346,6 +346,7 @@ void CefBrowserPlatformDelegateNativeAura::CloseHostWindow()
         parent->RemoveChild(window_);
     }
   }
+  CEF_POST_TASK(CEF_UIT, base::Bind(&CefBrowserHostImpl::WindowDestroyed, browser_));
 }
 
 CefWindowHandle CefBrowserPlatformDelegateNativeAura::GetHostWindowHandle() const
