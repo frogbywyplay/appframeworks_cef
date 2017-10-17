@@ -265,7 +265,7 @@ void CefGpuMediaService::ChannelListener::OnInitialize(
     } else if (!delegate_->OpenVideo()) {
       LOG(ERROR) << "Failed to open video device";
     } else {
-      audio_opened_ = true;
+      video_opened_ = true;
     }
 
     result.success = audio_opened_ || video_opened_;

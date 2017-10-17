@@ -26,9 +26,10 @@
 -      if (codec_info->tag == CodecInfo::HISTOGRAM_VP8 &&
 -          !media::MediaCodecUtil::IsVp8DecoderAvailable() &&
 -          !media::IsUnifiedMediaPipelineEnabled()) {
--        return false;
++      if (codec_info->tag == CodecInfo::HISTOGRAM_VP9 && !media::PlatformHasVP9Support())
+         return false;
 -      }
-       if (codec_info->tag == CodecInfo::HISTOGRAM_VP9 &&
+-      if (codec_info->tag == CodecInfo::HISTOGRAM_VP9 &&
 -          !media::MediaCodecUtil::IsVp9DecoderAvailable() &&
 -          !media::IsUnifiedMediaPipelineEnabled()) {
 -        return false;
@@ -36,8 +37,7 @@
 -      if (codec_info->tag == CodecInfo::HISTOGRAM_OPUS &&
 -          !media::PlatformHasOpusSupport() &&
 -          !media::IsUnifiedMediaPipelineEnabled()) {
-+          !media::PlatformHasVP9Support())
-         return false;
+-        return false;
 -      }
 -#endif
        if (video_codecs)
