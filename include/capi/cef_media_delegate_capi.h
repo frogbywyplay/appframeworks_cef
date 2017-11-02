@@ -81,6 +81,12 @@ typedef struct _cef_media_event_callback_t {
   // Signal that the underlying stack has enough data to play
   ///
   void (CEF_CALLBACK *have_enough)(struct _cef_media_event_callback_t* self);
+
+  ///
+  // Signal that a frame is available for capture
+  ///
+  void (CEF_CALLBACK *frame_available)(
+      struct _cef_media_event_callback_t* self);
 } cef_media_event_callback_t;
 
 
@@ -219,6 +225,23 @@ typedef struct _cef_media_delegate_t {
   // Used to know if delegate has support for OPUS codec
   ///
   int (CEF_CALLBACK *has_opus_support)(struct _cef_media_delegate_t* self);
+
+  ///
+  // Called to start capture capabilities if possible
+  ///
+  int (CEF_CALLBACK *enable_video_capture)(struct _cef_media_delegate_t* self);
+
+  ///
+  // Number maximum to reserve for video capture
+  ///
+  int (CEF_CALLBACK *max_surface_count)(struct _cef_media_delegate_t* self);
+
+  ///
+  // Capture frame onto the provided native surface
+  ///
+  int (CEF_CALLBACK *capture_frame)(struct _cef_media_delegate_t* self,
+      void* surface, int* width, int* height,
+      cef_aspect_ratio_t* aspect_ratio);
 } cef_media_delegate_t;
 
 

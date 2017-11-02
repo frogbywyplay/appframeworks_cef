@@ -15,12 +15,11 @@
 
 #include "libcef/common/cef_display.h"
 
-#include "include/cef_media_delegate.h"
-
-class CefMediaDevice;
+#include "libcef/renderer/media/cef_media_gpu_proxy.h"
 
 class CefMediaRenderer :
-  public media::Renderer {
+  public media::Renderer,
+  public CefMediaGpuProxy::Client {
   public:
 
     typedef base::Callback<void(int)> StatisticsCB;
@@ -31,7 +30,6 @@ class CefMediaRenderer :
       const scoped_refptr<base::SingleThreadTaskRunner>& media_task_runner,
       const scoped_refptr<base::TaskRunner>& worker_task_runner,
       media::VideoRendererSink* video_renderer_sink,
-      CefRefPtr<CefMediaDelegate>& delegate,
       const CefGetDisplayInfoCB& get_display_info_cb);
 
     virtual ~CefMediaRenderer();
@@ -76,11 +74,17 @@ class CefMediaRenderer :
     // Signal the position and size of the video surface on screen
     void UpdateVideoSurface(int x, int y, int width, int height);
 
-    void OnEndOfStream();
-    void OnResolutionChanged(int width, int height);
-    void OnVideoPTS(int64_t pts);
-    void OnAudioPTS(int64_t pts);
-    void OnHaveEnough();
+    // CefMediaGpuProxy::Client impl
+    virtual void OnFlushed() override;
+    virtual void OnStatistics(media::DemuxerStream::Type type, int size) override;
+    virtual void OnEndOfStream() override;
+    virtual void OnResolutionChanged(int width, int height) override;
+    virtual void OnHaveEnough() override;
+    virtual void OnLastPTS(int64_t pts) override;
+    virtual void OnPTSUpdate(int64_t pts) override;
+    virtual void OnFrameCaptured(const scoped_refptr<media::VideoFrame>& frame) override;
+    virtual void OnMediaGpuProxyError(CefMediaGpuProxy::Client::Error error) override;
+    virtual void OnNeedKey() override;
 
   private:
 
@@ -94,22 +98,14 @@ class CefMediaRenderer :
       ERROR,
     };
 
-    bool CheckVideoConfiguration(media::DemuxerStream* stream);
-    bool CheckAudioConfiguration(media::DemuxerStream* stream);
-
     void InitializeTask(media::DemuxerStream* video_stream,
                         media::DemuxerStream* audio_stream);
     void Cleanup();
-
-    void OnStatistics(media::DemuxerStream::Type type, int size);
-    void OnLastPTS(media::DemuxerStream::Type type, int64_t pts);
     void OnStop();
-
     void SendHaveEnough();
 
     const scoped_refptr<media::MediaLog>              media_log_;
     const scoped_refptr<base::SingleThreadTaskRunner> media_task_runner_;
-    CefRefPtr<CefMediaDelegate>                       delegate_;
     media::VideoRendererSink*                         video_renderer_sink_;
     const CefGetDisplayInfoCB                         get_display_info_cb_;
     media::Decryptor*                                 decryptor_;
@@ -117,26 +113,27 @@ class CefMediaRenderer :
 
     media::PipelineStatusCB init_cb_;
     base::Closure           stop_cb_;
-    media::CdmAttachedCB    cdm_attached_cb_;
+    base::Closure           flush_cb_;
 
     State   state_;
     bool    paused_;
-    int64_t last_audio_pts_;
-    int64_t last_video_pts_;
+    int64_t last_pts_;
     int     x_;
     int     y_;
     int     width_;
     int     height_;
     float   volume_;
     float   rate_;
+    bool    use_video_hole_;
     bool    initial_video_hole_created_;
 
     base::TimeDelta           start_time_;
     base::TimeDelta           current_time_;
     media::PipelineStatistics stats_;
 
-    CefMediaDevice *audio_renderer_;
-    CefMediaDevice *video_renderer_;
+    CefMediaGpuProxy media_gpu_proxy_;
+
+    content::ThreadSafeSender* thread_safe_sender_;
 
     base::WeakPtr<CefMediaRenderer> weak_this_;
     base::WeakPtrFactory<CefMediaRenderer> weak_factory_;

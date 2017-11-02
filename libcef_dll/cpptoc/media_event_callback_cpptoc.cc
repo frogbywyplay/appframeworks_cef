@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -81,6 +81,18 @@ void CEF_CALLBACK media_event_callback_have_enough(
   CefMediaEventCallbackCppToC::Get(self)->HaveEnough();
 }
 
+void CEF_CALLBACK media_event_callback_frame_available(
+    struct _cef_media_event_callback_t* self) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return;
+
+  // Execute
+  CefMediaEventCallbackCppToC::Get(self)->FrameAvailable();
+}
+
 }  // namespace
 
 
@@ -92,6 +104,7 @@ CefMediaEventCallbackCppToC::CefMediaEventCallbackCppToC() {
   GetStruct()->video_pts = media_event_callback_video_pts;
   GetStruct()->audio_pts = media_event_callback_audio_pts;
   GetStruct()->have_enough = media_event_callback_have_enough;
+  GetStruct()->frame_available = media_event_callback_frame_available;
 }
 
 template<> CefRefPtr<CefMediaEventCallback> CefCppToC<CefMediaEventCallbackCppToC,

@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -36,6 +36,7 @@ class CefMediaEventCallbackCToCpp
   void VideoPTS(int64 pts) OVERRIDE;
   void AudioPTS(int64 pts) OVERRIDE;
   void HaveEnough() OVERRIDE;
+  void FrameAvailable() OVERRIDE;
 };
 
 #endif  // USING_CEF_SHARED

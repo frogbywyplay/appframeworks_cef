@@ -55,6 +55,10 @@ class CefMediaDelegateCToCpp
   int SendVideoBuffer(char* buf, int size, int64 pts) override;
   bool HasVP9Support() override;
   bool HasOpusSupport() override;
+  bool EnableVideoCapture() override;
+  int MaxSurfaceCount() override;
+  bool CaptureFrame(void* surface, int* width, int* height,
+      cef_aspect_ratio_t* aspect_ratio) override;
 };
 
 #endif  // BUILDING_CEF_SHARED

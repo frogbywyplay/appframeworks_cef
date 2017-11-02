@@ -32,16 +32,14 @@ std::unique_ptr<media::Renderer> CefRendererFactory::CreateRenderer(
   media::VideoRendererSink* video_renderer_sink,
   const media::RequestSurfaceCB& request_surface_cb)
 {
-  if (delegate_.get())
-  {
-    std::unique_ptr<media::Renderer> res(new CefMediaRenderer(
-                                           media_log_,
-                                           media_task_runner,
-                                           worker_task_runner,
-                                           video_renderer_sink,
-                                           delegate_,
-                                           get_display_info_cb_));
-    return std::move(res);
-  }
-  return NULL;
+  std::unique_ptr<media::Renderer> res;
+
+  res.reset(new CefMediaRenderer(
+	      media_log_,
+	      media_task_runner,
+	      worker_task_runner,
+	      video_renderer_sink,
+	      get_display_info_cb_));
+
+  return res;
 }

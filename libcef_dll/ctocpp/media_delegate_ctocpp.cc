@@ -324,6 +324,46 @@ bool CefMediaDelegateCToCpp::HasOpusSupport() {
   return _retval?true:false;
 }
 
+bool CefMediaDelegateCToCpp::EnableVideoCapture() {
+  cef_media_delegate_t* _struct = GetStruct();
+  if (CEF_MEMBER_MISSING(_struct, enable_video_capture))
+    return false;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  int _retval = _struct->enable_video_capture(_struct);
+
+  // Return type: bool
+  return _retval?true:false;
+}
+
+int CefMediaDelegateCToCpp::MaxSurfaceCount() {
+  cef_media_delegate_t* _struct = GetStruct();
+  if (CEF_MEMBER_MISSING(_struct, max_surface_count))
+    return 0;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  int _retval = _struct->max_surface_count(_struct);
+
+  // Return type: simple
+  return _retval;
+}
+
+bool CefMediaDelegateCToCpp::CaptureFrame(void* surface, int* width,
+    int* height, cef_aspect_ratio_t* aspect_ratio) {
+  cef_media_delegate_t* _struct = GetStruct();
+  if (CEF_MEMBER_MISSING(_struct, capture_frame))
+    return false;
+
+  int _retval = _struct->capture_frame(_struct,
+      surface, width, height, aspect_ratio);
+
+  // Return type: bool
+  return _retval?true:false;
+}
 
 // CONSTRUCTOR - Do not edit by hand.
 

@@ -334,6 +334,51 @@ int CEF_CALLBACK media_delegate_has_opus_support(
   // Execute
   bool _retval = CefMediaDelegateCppToC::Get(self)->HasOpusSupport();
 
+  // Return type: simple
+  return _retval;
+}
+
+int CEF_CALLBACK media_delegate_enable_video_capture(
+    struct _cef_media_delegate_t* self) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return 0;
+
+  // Execute
+  bool _retval = CefMediaDelegateCppToC::Get(self)->EnableVideoCapture();
+
+  // Return type: bool
+  return _retval;
+}
+
+int CEF_CALLBACK media_delegate_max_surface_count(
+    struct _cef_media_delegate_t* self) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return 0;
+
+  // Execute
+  int _retval = CefMediaDelegateCppToC::Get(self)->MaxSurfaceCount();
+
+  // Return type: simple
+  return _retval;
+}
+
+int CEF_CALLBACK media_delegate_capture_frame(
+    struct _cef_media_delegate_t* self, void* surface, int* width, int* height,
+    cef_aspect_ratio_t* aspect_ratio) {
+  DCHECK(self);
+  if (!self)
+    return 0;
+
+  // Execute
+  bool _retval = CefMediaDelegateCppToC::Get(self)->CaptureFrame(
+      surface, width, height, aspect_ratio);
+
   // Return type: bool
   return _retval;
 }
@@ -367,6 +412,9 @@ CefMediaDelegateCppToC::CefMediaDelegateCppToC() {
   GetStruct()->send_video_buffer = media_delegate_send_video_buffer;
   GetStruct()->has_vp9_support = media_delegate_has_vp9_support;
   GetStruct()->has_opus_support = media_delegate_has_opus_support;
+  GetStruct()->enable_video_capture = media_delegate_enable_video_capture;
+  GetStruct()->max_surface_count = media_delegate_max_surface_count;
+  GetStruct()->capture_frame = media_delegate_capture_frame;
 }
 
 template<> CefRefPtr<CefMediaDelegate> CefCppToC<CefMediaDelegateCppToC,

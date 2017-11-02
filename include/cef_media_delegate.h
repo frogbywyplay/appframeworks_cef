@@ -37,6 +37,14 @@ extern "C" {
     CodecALAC = 15,
   } cef_audio_codec_t;
 
+  typedef enum {
+    UnknownAspectRatio = 0,
+    AspectRatio4x3,
+    AspectRatio16x9,
+    AspectRatio221x1,
+    AspectRatio15x9
+  } cef_aspect_ratio_t;
+
 #ifdef __cplusplus
 }
 #endif
@@ -76,6 +84,12 @@ class CefMediaEventCallback : public virtual CefBase {
     ///
     /*--cef(capi_name=have_enough)--*/
     virtual void  HaveEnough() = 0;
+
+    ///
+    // Signal that a frame is available for capture
+    ///
+    /*--cef(capi_name=frame_available)--*/
+    virtual void  FrameAvailable() = 0;
 };
 
 ///
@@ -206,6 +220,21 @@ class CefMediaDelegate : public virtual CefBase {
     virtual bool HasOpusSupport() {
       return false;
     };
+    ///
+    // Called to start capture capabilities if possible
+    ///
+    /*--cef(default_retval=false)--*/
+    virtual bool EnableVideoCapture() = 0;
+    ///
+    // Number maximum to reserve for video capture
+    ///
+    /*--cef(default_retval=0)--*/
+    virtual int MaxSurfaceCount() = 0;
+    ///
+    // Capture frame onto the provided native surface
+    ///
+    /*--cef(default_retval=false)--*/
+    virtual bool CaptureFrame(void* surface, int* width, int* height, cef_aspect_ratio_t* aspect_ratio) = 0;
 };
 
 #endif /* !CEF_MEDIA_DELEGATE.H */

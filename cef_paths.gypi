@@ -1,4 +1,4 @@
-# Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
+# Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
 # reserved. Use of this source code is governed by a BSD-style license that
 # can be found in the LICENSE file.
 #
@@ -364,10 +364,10 @@
       'libcef_dll/ctocpp/scheme_handler_factory_ctocpp.h',
       'libcef_dll/cpptoc/scheme_registrar_cpptoc.cc',
       'libcef_dll/cpptoc/scheme_registrar_cpptoc.h',
-      'libcef_dll/cpptoc/select_client_certificate_callback_cpptoc.cc',
-      'libcef_dll/cpptoc/select_client_certificate_callback_cpptoc.h',
       'libcef_dll/cpptoc/views/scroll_view_cpptoc.cc',
       'libcef_dll/cpptoc/views/scroll_view_cpptoc.h',
+      'libcef_dll/cpptoc/select_client_certificate_callback_cpptoc.cc',
+      'libcef_dll/cpptoc/select_client_certificate_callback_cpptoc.h',
       'libcef_dll/ctocpp/set_cookie_callback_ctocpp.cc',
       'libcef_dll/ctocpp/set_cookie_callback_ctocpp.h',
       'libcef_dll/cpptoc/stream_reader_cpptoc.cc',
@@ -620,10 +620,10 @@
       'libcef_dll/cpptoc/scheme_handler_factory_cpptoc.h',
       'libcef_dll/ctocpp/scheme_registrar_ctocpp.cc',
       'libcef_dll/ctocpp/scheme_registrar_ctocpp.h',
-      'libcef_dll/ctocpp/select_client_certificate_callback_ctocpp.cc',
-      'libcef_dll/ctocpp/select_client_certificate_callback_ctocpp.h',
       'libcef_dll/ctocpp/views/scroll_view_ctocpp.cc',
       'libcef_dll/ctocpp/views/scroll_view_ctocpp.h',
+      'libcef_dll/ctocpp/select_client_certificate_callback_ctocpp.cc',
+      'libcef_dll/ctocpp/select_client_certificate_callback_ctocpp.h',
       'libcef_dll/cpptoc/set_cookie_callback_cpptoc.cc',
       'libcef_dll/cpptoc/set_cookie_callback_cpptoc.h',
       'libcef_dll/ctocpp/stream_reader_ctocpp.cc',
