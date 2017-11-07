@@ -47,6 +47,8 @@ IPC_STRUCT_BEGIN(CefGpuMediaMsg_Frame_Params)
   IPC_STRUCT_MEMBER(int64_t, pts)
 IPC_STRUCT_END()
 
+IPC_SYNC_MESSAGE_ROUTED0_1(CefGpuMediaMsg_HasVP9Support, bool)
+IPC_SYNC_MESSAGE_ROUTED0_1(CefGpuMediaMsg_HasOpusSupport, bool)
 IPC_SYNC_MESSAGE_ROUTED1_1(CefGpuMediaMsg_Initialize,
 			   CefGpuMediaMsg_Initialize_Params,
 			   CefGpuMediaMsg_Initialize_Result)

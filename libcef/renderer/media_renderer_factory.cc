@@ -16,9 +16,6 @@ CefRendererFactory::CefRendererFactory(
     get_display_info_cb_(get_display_info_cb),
     delegate_(NULL)
 {
-  CefRefPtr<CefApp> application = CefContentClient::Get()->application();
-  if (application.get())
-    delegate_ = application->GetMediaDelegate();
 }
 
 CefRendererFactory::~CefRendererFactory()

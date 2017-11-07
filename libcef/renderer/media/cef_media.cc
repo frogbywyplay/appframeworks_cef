@@ -4,31 +4,12 @@
 #include "include/cef_media_delegate.h"
 
 #include "libcef/common/content_client.h"
+#include "libcef/renderer/media/cef_media_gpu_proxy.h"
 
 bool media::PlatformHasOpusSupport() {
-  CefRefPtr<CefApp> application = CefContentClient::Get()->application();
-
-  if (!application.get())
-    return false;
-
-  CefRefPtr<CefMediaDelegate> delegate = application->GetMediaDelegate();
-
-  if (!delegate.get())
-    return false;
-
-  return delegate->HasOpusSupport();
+  return CefMediaGpuProxy::PlatformHasOpusSupport();
 }
 
 bool media::PlatformHasVP9Support() {
-  CefRefPtr<CefApp> application = CefContentClient::Get()->application();
-
-  if (!application.get())
-    return false;
-
-  CefRefPtr<CefMediaDelegate> delegate = application->GetMediaDelegate();
-
-  if (!delegate.get())
-    return false;
-
-  return delegate->HasVP9Support();
+  return CefMediaGpuProxy::PlatformHasVP9Support();
 }

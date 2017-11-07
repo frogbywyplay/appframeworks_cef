@@ -192,6 +192,10 @@ bool CefGpuMediaService::ChannelListener::OnMessageReceived(const IPC::Message& 
   bool handled = true;
 
   IPC_BEGIN_MESSAGE_MAP(CefGpuMediaService, message)
+    IPC_MESSAGE_HANDLER_DELAY_REPLY(CefGpuMediaMsg_HasVP9Support,
+				    CefGpuMediaService::ChannelListener::OnHasVP9Support)
+    IPC_MESSAGE_HANDLER_DELAY_REPLY(CefGpuMediaMsg_HasOpusSupport,
+				    CefGpuMediaService::ChannelListener::OnHasOpusSupport)
     IPC_MESSAGE_HANDLER_DELAY_REPLY(CefGpuMediaMsg_Initialize,
 				    CefGpuMediaService::ChannelListener::OnInitialize)
     IPC_MESSAGE_HANDLER_DELAY_REPLY(CefGpuMediaMsg_Cleanup,
@@ -414,4 +418,16 @@ void CefGpuMediaService::ChannelListener::DoCleanup() {
 
   if (stub_)
     stub_ = NULL;
+}
+
+void CefGpuMediaService::ChannelListener::OnHasVP9Support(IPC::Message* reply_message) {
+  CefGpuMediaMsg_HasVP9Support::WriteReplyParams(
+    reply_message, delegate_->HasVP9Support());
+  channel_->Send(reply_message);
+}
+
+void CefGpuMediaService::ChannelListener::OnHasOpusSupport(IPC::Message* reply_message) {
+  CefGpuMediaMsg_HasOpusSupport::WriteReplyParams(
+    reply_message, delegate_->HasOpusSupport());
+  channel_->Send(reply_message);
 }

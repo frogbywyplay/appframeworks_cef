@@ -210,16 +210,12 @@ class CefMediaDelegate : public virtual CefBase {
     // Used to know if delegate has support for VP9 codec
     ///
     /*--cef(default_retval=false)--*/
-    virtual bool HasVP9Support() {
-      return false;
-    }
+    virtual bool HasVP9Support() = 0;
     ///
     // Used to know if delegate has support for OPUS codec
     ///
     /*--cef(default_retval=false)--*/
-    virtual bool HasOpusSupport() {
-      return false;
-    };
+    virtual bool HasOpusSupport() = 0;
     ///
     // Called to start capture capabilities if possible
     ///

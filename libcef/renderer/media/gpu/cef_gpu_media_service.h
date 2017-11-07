@@ -61,6 +61,8 @@ class CefGpuMediaService {
 
 	// IPC::Listener and handlers
 	bool OnMessageReceived(const IPC::Message& message);
+	void OnHasVP9Support(IPC::Message* reply_message);
+	void OnHasOpusSupport(IPC::Message* reply_message);
 	void OnInitialize(
 	  CefGpuMediaMsg_Initialize_Params params,
 	  IPC::Message* reply_message);

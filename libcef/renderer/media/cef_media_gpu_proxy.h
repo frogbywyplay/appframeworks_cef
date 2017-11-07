@@ -49,6 +49,9 @@ class CefMediaGpuProxy :
 		     const scoped_refptr<base::SingleThreadTaskRunner>& task_runner);
     ~CefMediaGpuProxy();
 
+    static bool PlatformHasVP9Support();
+    static bool PlatformHasOpusSupport();
+
     bool Send(IPC::Message *msg);
 
     bool InitializeRenderer(media::DemuxerStream* video_stream,

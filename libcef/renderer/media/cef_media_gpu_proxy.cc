@@ -510,3 +510,37 @@ void CefMediaGpuProxy::OnFrameCapturedTask(CefGpuMediaMsg_Frame_Params params) {
       params.coded_size, params.visible_rect, params.natural_size,
       base::TimeDelta::FromMilliseconds(params.pts) + start_time_));
 }
+
+bool CefMediaGpuProxy::PlatformHasVP9Support() {
+  bool support;
+  gpu::CommandBufferProxyImpl* command_buffer_proxy =
+    content::RenderThreadImpl::current()
+      ->SharedMainThreadContextProvider()->GetCommandBufferProxy();
+
+  if (command_buffer_proxy) {
+    if (!command_buffer_proxy->channel()->Send(
+	  new CefGpuMediaMsg_HasVP9Support(command_buffer_proxy->route_id(), &support)))
+      return false;
+
+    return support;
+  }
+
+  return false;
+}
+
+bool CefMediaGpuProxy::PlatformHasOpusSupport() {
+  bool support;
+  gpu::CommandBufferProxyImpl* command_buffer_proxy =
+    content::RenderThreadImpl::current()
+      ->SharedMainThreadContextProvider()->GetCommandBufferProxy();
+
+  if (command_buffer_proxy) {
+    if (!command_buffer_proxy->channel()->Send(
+	  new CefGpuMediaMsg_HasOpusSupport(command_buffer_proxy->route_id(), &support)))
+      return false;
+
+    return support;
+  }
+
+  return false;
+}
