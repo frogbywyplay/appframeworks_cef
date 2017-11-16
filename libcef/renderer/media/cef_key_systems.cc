@@ -106,7 +106,7 @@ static void AddPepperBasedWidevine(
   supported_codecs |= media::EME_CODEC_WEBM_OPUS;
   supported_codecs |= media::EME_CODEC_WEBM_VORBIS;
 #if defined(USE_PROPRIETARY_CODECS)
-  supported_codecs |= media::EME_CODEC_MP4_AAC;
+  supported_codecs |= media::EME_CODEC_MP4_ALL;
 #endif  // defined(USE_PROPRIETARY_CODECS)
 
   for (size_t i = 0; i < codecs.size(); ++i) {
@@ -115,8 +115,6 @@ static void AddPepperBasedWidevine(
     if (codecs[i] == kCdmSupportedCodecVp9)
       supported_codecs |= media::EME_CODEC_WEBM_VP9;
 #if defined(USE_PROPRIETARY_CODECS)
-    if (codecs[i] == kCdmSupportedCodecAvc1)
-      supported_codecs |= media::EME_CODEC_MP4_AVC1;
 #if BUILDFLAG(ENABLE_MP4_VP9_DEMUXING)
     if (codecs[i] == kCdmSupportedCodecVp9)
       supported_codecs |= media::EME_CODEC_MP4_VP9;
