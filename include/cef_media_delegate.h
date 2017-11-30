@@ -37,12 +37,9 @@ extern "C" {
     CodecALAC = 15,
   } cef_audio_codec_t;
 
-  typedef enum {
-    UnknownAspectRatio = 0,
-    AspectRatio4x3,
-    AspectRatio16x9,
-    AspectRatio221x1,
-    AspectRatio15x9
+  typedef struct {
+    unsigned num;
+    unsigned den;
   } cef_aspect_ratio_t;
 
 #ifdef __cplusplus

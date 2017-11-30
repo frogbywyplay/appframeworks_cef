@@ -421,13 +421,15 @@ void CefGpuMediaService::ChannelListener::DoCleanup() {
 }
 
 void CefGpuMediaService::ChannelListener::OnHasVP9Support(IPC::Message* reply_message) {
-  CefGpuMediaMsg_HasVP9Support::WriteReplyParams(
-    reply_message, delegate_->HasVP9Support());
+  bool support = delegate_->HasVP9Support();
+  LOG(INFO) << "OnHasVP9Support: has_support=" << support;
+  CefGpuMediaMsg_HasVP9Support::WriteReplyParams(reply_message, support);
   channel_->Send(reply_message);
 }
 
 void CefGpuMediaService::ChannelListener::OnHasOpusSupport(IPC::Message* reply_message) {
-  CefGpuMediaMsg_HasOpusSupport::WriteReplyParams(
-    reply_message, delegate_->HasOpusSupport());
+  bool support = delegate_->HasOpusSupport();
+  LOG(INFO) << "OnHasOpusSupport: has_support=" << support;
+  CefGpuMediaMsg_HasOpusSupport::WriteReplyParams(reply_message, support);
   channel_->Send(reply_message);
 }

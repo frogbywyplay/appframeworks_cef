@@ -519,12 +519,16 @@ bool CefMediaGpuProxy::PlatformHasVP9Support() {
 
   if (command_buffer_proxy) {
     if (!command_buffer_proxy->channel()->Send(
-	  new CefGpuMediaMsg_HasVP9Support(command_buffer_proxy->route_id(), &support)))
+	  new CefGpuMediaMsg_HasVP9Support(command_buffer_proxy->route_id(), &support))) {
+      LOG(WARNING) << "CefGpuMediaMsg_HasVP9Support IPC failed";
       return false;
+    }
 
+    LOG(INFO) << "VP9 delegate support: " << support;
     return support;
   }
 
+  LOG(ERROR) << "No command_buffer_proxy";
   return false;
 }
 
@@ -536,11 +540,15 @@ bool CefMediaGpuProxy::PlatformHasOpusSupport() {
 
   if (command_buffer_proxy) {
     if (!command_buffer_proxy->channel()->Send(
-	  new CefGpuMediaMsg_HasOpusSupport(command_buffer_proxy->route_id(), &support)))
+	  new CefGpuMediaMsg_HasOpusSupport(command_buffer_proxy->route_id(), &support))) {
+      LOG(WARNING) << "CefGpuMediaMsg_HasOpusSupport IPC failed";
       return false;
+    }
 
+    LOG(INFO) << "Opus delegate support:" << support;
     return support;
   }
 
+  LOG(ERROR) << "No command_buffer_proxy";
   return false;
 }

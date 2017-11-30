@@ -16,20 +16,9 @@
 
 namespace {
 
-  gfx::Size ApplySampleRatio(cef_aspect_ratio_t ratio, gfx::Size size)
+  gfx::Size ApplySampleRatio(cef_aspect_ratio_t *ratio, gfx::Size size)
   {
-    switch (ratio) {
-      case AspectRatio4x3:
-	return gfx::ScaleToCeiledSize(size, 4, 3);
-      case AspectRatio16x9:
-	return gfx::ScaleToCeiledSize(size, 16, 9);
-      case AspectRatio221x1:
-	return gfx::ScaleToCeiledSize(size, 221, 100);
-      case AspectRatio15x9:
-	return gfx::ScaleToCeiledSize(size, 15, 9);
-      default:
-	return size;
-    }
+    return gfx::ScaleToCeiledSize(size, ratio->num, ratio->den);
   }
 
 }
@@ -168,7 +157,7 @@ void CefGpuVideoCaptureManager::CaptureFrame(CaptureCb on_capture_done) {
     if (delegate_->CaptureFrame(
 	  surface->GetNativeSurface(), &width, &height, &aspect_ratio)) {
       gfx::Size frame_size(width, height);
-      gfx::Size natural_size = ApplySampleRatio(aspect_ratio, frame_size);
+      gfx::Size natural_size = ApplySampleRatio(&aspect_ratio, frame_size);
 
       reserved_surfaces_[surface->FrameId()] = surface;
       available_surfaces_.pop();
