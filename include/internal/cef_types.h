@@ -218,6 +218,14 @@ typedef struct _cef_settings_t {
   cef_string_t cache_path;
 
   ///
+  // The location where http cache data will be stored on disk. If empty an in-memory
+  // cache will be used for some features and a temporary disk cache for others.
+  // HTML5 databases such as localStorage will only persist across sessions if a
+  // cache path is specified.
+  ///
+  cef_string_t http_cache_path;
+
+  ///
   // The location where user data such as spell checking dictionary files will
   // be stored on disk. If empty then the default platform-specific user data
   // directory will be used ("~/.cef_user_data" directory on Linux,
@@ -414,6 +422,8 @@ typedef struct _cef_request_context_settings_t {
   // this value to match the CefSettings.cache_path value.
   ///
   cef_string_t cache_path;
+
+  cef_string_t http_cache_path;
 
   ///
   // To persist session cookies (cookies without an expiry date or validity

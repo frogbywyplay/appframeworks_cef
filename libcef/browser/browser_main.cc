@@ -20,11 +20,14 @@
 #include "libcef/browser/thread_util.h"
 #include "libcef/common/extensions/extensions_client.h"
 #include "libcef/common/extensions/extensions_util.h"
+#include "libcef/common/cef_switches.h"
 #include "libcef/common/net/net_resource_provider.h"
+#include "libcef/browser/network_change_notifier.h"
 
 #include "base/bind.h"
 #include "base/command_line.h"
 #include "base/message_loop/message_loop.h"
+#include "base/numerics/safe_conversions.h"
 #include "base/strings/string_number_conversions.h"
 #include "chrome/browser/plugins/plugin_finder.h"
 #include "content/browser/webui/content_web_ui_controller_factory.h"
@@ -34,14 +37,18 @@
 #include "content/public/common/content_switches.h"
 #include "extensions/browser/extension_system.h"
 #include "extensions/common/constants.h"
+#include "net/base/ip_address.h"
 #include "net/base/net_module.h"
 #include "ui/base/resource/resource_bundle.h"
 
 #if defined(USE_AURA)
 #include "ui/aura/env.h"
 #include "ui/display/screen.h"
+#if defined(TOOLKIT_VIEWS)
 #include "ui/views/test/desktop_test_views_delegate.h"
 #include "ui/views/widget/desktop_aura/desktop_screen.h"
+#endif
+#include "ui/aura/test/test_screen.h"
 
 #if defined(OS_WIN)
 #include "ui/base/cursor/cursor_loader_win.h"
@@ -68,6 +75,8 @@ CefBrowserMainParts::~CefBrowserMainParts() {
 void CefBrowserMainParts::PreMainMessageLoopStart() {
   if (!base::MessageLoop::current()) {
     // Create the browser message loop.
+    net::NetworkChangeNotifier::SetFactory(
+      new CefNetworkChangeNotifierFactory());
     message_loop_.reset(new CefBrowserMessageLoop());
     message_loop_->set_thread_name("CrBrowserMain");
   }
@@ -85,7 +94,9 @@ void CefBrowserMainParts::ToolkitInitialized() {
 #if defined(USE_AURA)
   CHECK(aura::Env::GetInstance());
 
+#if defined(TOOLKIT_VIEWS)
   new views::DesktopTestViewsDelegate;
+#endif
 
 #if defined(OS_WIN)
   ui::CursorLoaderWin::SetCursorResourceModule(
@@ -120,7 +131,12 @@ int CefBrowserMainParts::PreCreateThreads() {
   content::GpuDataManager::GetInstance();
 
 #if defined(USE_AURA)
-  display::Screen::SetScreenInstance(views::CreateDesktopScreen());
+  #if defined(TOOLKIT_VIEWS)
+  display::Screen::SetScreenInstance( views::CreateDesktopScreen());
+  #else
+  aura::TestScreen* screen = aura::TestScreen::Create(gfx::Size());
+  display::Screen::SetScreenInstance(screen);
+  #endif
 #endif
 
   return 0;
@@ -154,9 +170,24 @@ void CefBrowserMainParts::PreMainMessageLoopRun() {
     std::string port_str =
         command_line->GetSwitchValueASCII(switches::kRemoteDebuggingPort);
     int port;
-    if (base::StringToInt(port_str, &port) && port > 0 && port < 65535) {
-      devtools_delegate_ =
-          new CefDevToolsDelegate(static_cast<uint16_t>(port));
+    if (base::StringToInt(port_str, &port) &&
+        base::IsValueInRangeForNumericType<uint16_t>(port)) {
+      std::string address;
+      if (command_line->HasSwitch(switches::kRemoteDebuggingAddress)) {
+        address =
+            command_line->GetSwitchValueASCII(switches::kRemoteDebuggingAddress);
+        net::IPAddress parsed_address;
+        if (!net::ParseURLHostnameToAddress(address, &parsed_address)) {
+          LOG(WARNING) << "Invalid http debugger address " << address;
+          address.clear();
+        }
+      } else {
+        address = "127.0.0.1";
+      }
+      if (!address.empty()) {
+        devtools_delegate_ =
+            new CefDevToolsDelegate(address, static_cast<uint16_t>(port));
+      }
     } else {
       LOG(WARNING) << "Invalid http debugger port number " << port;
     }
@@ -186,7 +217,7 @@ void CefBrowserMainParts::PostMainMessageLoopRun() {
 }
 
 void CefBrowserMainParts::PostDestroyThreads() {
-#if defined(USE_AURA)
+#if defined(USE_AURA) && defined(TOOLKIT_VIEWS)
   // Delete the DesktopTestViewsDelegate.
   delete views::ViewsDelegate::GetInstance();
 #endif

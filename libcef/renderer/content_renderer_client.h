@@ -12,12 +12,14 @@
 #include <string>
 #include <vector>
 
+#include "libcef/common/cef_display.h"
 #include "libcef/renderer/browser_impl.h"
 
 #include "base/compiler_specific.h"
 #include "base/message_loop/message_loop.h"
 #include "base/sequenced_task_runner.h"
 #include "content/public/renderer/content_renderer_client.h"
+#include "content/public/renderer/render_frame.h"
 
 namespace extensions {
 class CefExtensionsRendererClient;
@@ -135,6 +137,11 @@ class CefContentRendererClient : public content::ContentRendererClient,
   // MessageLoop::DestructionObserver implementation.
   void WillDestroyCurrentMessageLoop() override;
 
+  std::unique_ptr<media::RendererFactory> CreateMediaRendererFactory(
+      content::RenderFrame* render_frame,
+      media::GpuVideoAcceleratorFactories* gpu_factories,
+      const scoped_refptr<media::MediaLog>& media_log) override;
+
   static bool IsExtensionOrSharedModuleWhitelisted(
       const GURL& url, const std::set<std::string>& whitelist);
 
@@ -150,6 +157,10 @@ class CefContentRendererClient : public content::ContentRendererClient,
 
   // Perform cleanup work for single-process mode.
   void RunSingleProcessCleanupOnUIThread();
+
+  CefDisplayInfo GetDisplayInfo();
+
+  CefDisplayInfo display_info_;
 
   scoped_refptr<base::SequencedTaskRunner> render_task_runner_;
   std::unique_ptr<CefRenderThreadObserver> observer_;

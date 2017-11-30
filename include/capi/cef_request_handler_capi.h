@@ -76,6 +76,24 @@ typedef struct _cef_request_callback_t {
 
 
 ///
+// Callback structure used to return the pah to the certificate and its key
+///
+typedef struct _cef_select_client_certificate_callback_t {
+  ///
+  // Base structure.
+  ///
+  cef_base_t base;
+
+  ///
+  // Called by the client to return the path to the certificat and its key
+  ///
+  void (CEF_CALLBACK *run)(
+      struct _cef_select_client_certificate_callback_t* self,
+      const cef_string_t* cert_path, const cef_string_t* key_path);
+} cef_select_client_certificate_callback_t;
+
+
+///
 // Implement this structure to handle events related to browser requests. The
 // functions of this structure will be called on the thread indicated.
 ///
@@ -237,6 +255,18 @@ typedef struct _cef_request_handler_t {
       struct _cef_browser_t* browser, cef_errorcode_t cert_error,
       const cef_string_t* request_url, struct _cef_sslinfo_t* ssl_info,
       struct _cef_request_callback_t* callback);
+
+  ///
+  // Called on the UI thread to handle requests for URLs with no maching SSL
+  // certificate. Return true (1) and call callback.run() with the path to the
+  // certificate formatted in DER as a CefString and the key path as a CefString
+  // Return false (0) to cancel the request immediately.
+  ///
+  int (CEF_CALLBACK *on_need_client_certificate)(
+      struct _cef_request_handler_t* self, struct _cef_browser_t* browser,
+      int port, const cef_string_t* host, int is_proxy,
+      cef_string_list_t autorithies, size_t* key_typesCount, int* key_types,
+      struct _cef_select_client_certificate_callback_t* callback);
 
   ///
   // Called on the browser process UI thread when a plugin has crashed.

@@ -18,6 +18,7 @@ class RenderProcessHost;
 }
 
 struct CefProcessHostMsg_GetNewBrowserInfo_Params;
+struct CefProcessHostMsg_GetDisplayInfo_Params;
 struct CefProcessHostMsg_GetNewRenderThreadInfo_Params;
 struct ViewHostMsg_CreateWindow_Params;
 
@@ -42,6 +43,8 @@ class CefBrowserMessageFilter : public IPC::MessageFilter {
       int render_view_routing_id,
       int render_frame_routing_id,
       IPC::Message* reply_msg);
+  void OnGetDisplayInfo(
+      CefProcessHostMsg_GetDisplayInfo_Params* params);
   void OnCreateWindow(const ViewHostMsg_CreateWindow_Params& params,
                       IPC::Message* reply_msg);
   void OnFrameFocused(int32_t render_frame_routing_id);

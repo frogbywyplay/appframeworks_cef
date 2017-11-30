@@ -4,10 +4,14 @@
 
 #include "libcef/browser/ssl_info_impl.h"
 #include "libcef/browser/ssl_cert_principal_impl.h"
+#include "libcef/browser/browser_context_impl.h"
 #include "libcef/common/time_util.h"
 
 #include "net/cert/cert_status_flags.h"
 #include "net/cert/x509_certificate.h"
+
+#include "net/socket/ssl_client_socket.h"
+#include "net/http/http_transaction_factory.h"
 
 namespace {
 
@@ -120,4 +124,30 @@ void CefSSLInfoImpl::GetDEREncodedIssuerChain(
 void CefSSLInfoImpl::GetPEMEncodedIssuerChain(
     CefSSLInfo::IssuerChainBinaryList& chain) {
   chain = pem_encoded_issuer_chain_;
+}
+
+void CefClearSSLSessionCache() {
+  std::vector<CefBrowserContextImpl*> browser_contexts = CefBrowserContextImpl::GetAll();
+
+  // Flush any cache we can find, this is ugly, but it does the job.
+  // TODO : Isolate the good browser_context
+  for (std::vector<CefBrowserContextImpl*>::iterator it = browser_contexts.begin();
+       it != browser_contexts.end(); ++it)
+  {
+    net::URLRequestContextGetter* getter = (*it)->GetRequestContext();
+    if (getter)
+    {
+      net::URLRequestContext* ctx = getter->GetURLRequestContext();
+
+      if (ctx)
+      {
+        ctx->http_transaction_factory()
+          ->GetSession()
+          ->ssl_client_auth_cache()
+          ->OnCertAdded(NULL); // This is a joke...
+      }
+    }
+  }
+
+  net::SSLClientSocket::ClearSessionCache();
 }

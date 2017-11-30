@@ -64,19 +64,19 @@ class TCPServerSocketFactory
 };
 
 std::unique_ptr<devtools_http_handler::DevToolsHttpHandler::ServerSocketFactory>
-    CreateSocketFactory(uint16_t port) {
+    CreateSocketFactory(const std::string& address, uint16_t port) {
   return std::unique_ptr<
       devtools_http_handler::DevToolsHttpHandler::ServerSocketFactory>(
-          new TCPServerSocketFactory("127.0.0.1", port));
+          new TCPServerSocketFactory(address, port));
 }
 
 }  // namespace
 
 // CefDevToolsDelegate
 
-CefDevToolsDelegate::CefDevToolsDelegate(uint16_t port) {
+CefDevToolsDelegate::CefDevToolsDelegate(const std::string& address, uint16_t port) {
   devtools_http_handler_.reset(new devtools_http_handler::DevToolsHttpHandler(
-      CreateSocketFactory(port),
+      CreateSocketFactory(address, port),
       std::string(),
       this,
       base::FilePath(),

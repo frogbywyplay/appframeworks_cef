@@ -41,9 +41,11 @@
 #include "include/capi/cef_base_capi.h"
 #include "include/capi/cef_browser_process_handler_capi.h"
 #include "include/capi/cef_command_line_capi.h"
+#include "include/capi/cef_media_delegate_capi.h"
 #include "include/capi/cef_render_process_handler_capi.h"
 #include "include/capi/cef_resource_bundle_handler_capi.h"
 #include "include/capi/cef_scheme_capi.h"
+#include "include/capi/cef_ssl_key_delegate_capi.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -107,6 +109,18 @@ typedef struct _cef_app_t {
   ///
   struct _cef_render_process_handler_t* (
       CEF_CALLBACK *get_render_process_handler)(struct _cef_app_t* self);
+
+  ///
+  // Return a media renderer to use with the chromium media pipeline
+  ///
+  struct _cef_media_delegate_t* (CEF_CALLBACK *get_media_delegate)(
+      struct _cef_app_t* self);
+
+  ///
+  // Return a delegate used to manipulate SSL keys
+  ///
+  struct _cef_sslkey_delegate_t* (CEF_CALLBACK *get_sslkey_delegate)(
+      struct _cef_app_t* self);
 } cef_app_t;
 
 
@@ -188,6 +202,11 @@ CEF_EXPORT void cef_set_osmodal_loop(int osModalLoop);
 // support DirectWrite and GDI fonts are kerned very badly.
 ///
 CEF_EXPORT void cef_enable_highdpi_support();
+
+///
+// Set internal locale
+///
+CEF_EXPORT int cef_set_locale(const cef_string_t* locale);
 
 #ifdef __cplusplus
 }

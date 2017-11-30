@@ -204,7 +204,7 @@ class CefBrowserInfoManager : public content::RenderProcessHostObserver {
   // Send the response for a pending OnGetNewBrowserInfo request.
   static void SendNewBrowserInfoResponse(
       int render_process_id,
-      CefBrowserInfo* browser_info,
+      CefRefPtr<CefBrowserInfo> browser_info,
       bool is_guest_view,
       IPC::Message* reply_msg);
 

@@ -16,7 +16,11 @@
 #include "libcef/browser/native/browser_platform_delegate_native_mac.h"
 #include "libcef/browser/osr/browser_platform_delegate_osr_mac.h"
 #elif defined(OS_LINUX)
+#if defined(USE_AURA)
+#include "libcef/browser/native/browser_platform_delegate_native_aura.h"
+#else
 #include "libcef/browser/native/browser_platform_delegate_native_linux.h"
+#endif
 #include "libcef/browser/osr/browser_platform_delegate_osr_linux.h"
 #else
 #error A delegate implementation is not available for your platform.
@@ -35,8 +39,13 @@ std::unique_ptr<CefBrowserPlatformDelegateNative> CreateNativeDelegate(
 #elif defined(OS_MACOSX)
   return base::WrapUnique(new CefBrowserPlatformDelegateNativeMac(window_info));
 #elif defined(OS_LINUX)
+#if defined(USE_AURA)
+  return base::WrapUnique(
+      new CefBrowserPlatformDelegateNativeAura(window_info));
+#else
   return base::WrapUnique(
       new CefBrowserPlatformDelegateNativeLinux(window_info));
+#endif
 #endif
 }
 

@@ -164,14 +164,10 @@
             '<@(cefclient_sources_mac)',
           ],
         }],
-        [ '(OS=="linux" or OS=="freebsd" or OS=="openbsd") and use_sysroot==0', {
-          # Required packages are not available when using the default sysroot
-          # environment. Consequently the cefclient target cannot be built with
-          # use_sysroot==1.
+        [ 'use_ozone==0 and use_sysroot==0', {
           'dependencies': [
             'gtk',
             'gtkglext',
-            'libcef',
           ],
           'link_settings': {
             'libraries': [
@@ -191,6 +187,32 @@
             },
           ],
         }],
+        [ 'use_ozone==1 and OS=="linux" or OS=="freebsd" or OS=="openbsd" and use_sysroot==0', {
+           'dependencies': [
+             'libcef',
+           ],
+           'sources': [
+             '<@(includes_linux)',
+             '<@(cefsimple_sources_linux)',
+           ],
+        }],
+        [ 'use_ozone==0 and OS=="linux" or OS=="freebsd" or OS=="openbsd" and use_sysroot==0', {
+          'dependencies': [
+            'libcef',
+          ],
+          'sources': [
+            '<@(includes_linux)',
+            '<@(cefclient_sources_linux)',
+          ],
+          'copies': [
+            {
+              'destination': '<(PRODUCT_DIR)/files',
+              'files': [
+                '<@(cefclient_bundle_resources_linux)',
+              ],
+            },
+          ],
+        }]
       ],
     },
     {
@@ -336,11 +358,15 @@
           'dependencies': [
             'libcef',
           ],
-          'link_settings': {
-            'libraries': [
-              '-lX11',
-            ],
-          },
+          'conditions': [
+            ['use_x11==1', {
+              'link_settings': {
+                'libraries': [
+                  '-lX11',
+                ],
+              },
+            }],
+          ],
           'sources': [
             '<@(includes_linux)',
             '<@(cefsimple_sources_linux)',
@@ -604,6 +630,7 @@
     {
       'target_name': 'libcef_dll_wrapper',
       'type': 'static_library',
+      'standalone_static_library': 1,
       'msvs_guid': 'A9D6DC71-C0DC-4549-AEA0-3B15B44E86A9',
       'all_dependent_settings': {
         'defines': [
@@ -1240,6 +1267,8 @@
         'libcef/browser/xml_reader_impl.h',
         'libcef/browser/zip_reader_impl.cc',
         'libcef/browser/zip_reader_impl.h',
+        'libcef/browser/network_change_notifier.cc',
+        'libcef/browser/network_change_notifier.h',
         'libcef/common/base_impl.cc',
         'libcef/common/cef_message_generator.cc',
         'libcef/common/cef_message_generator.h',
@@ -1344,6 +1373,13 @@
         'libcef/renderer/webkit_glue.h',
         'libcef/utility/content_utility_client.cc',
         'libcef/utility/content_utility_client.h',
+        'libcef/renderer/media/cef_device.cc',
+        'libcef/renderer/media/cef_device.h',
+        'libcef/renderer/media/cef_renderer.cc',
+        'libcef/renderer/media/cef_renderer.h',
+	'libcef/renderer/media/cef_media.cc',
+        'libcef/renderer/media_renderer_factory.cc',
+	'libcef/renderer/media_renderer_factory.h',
         '<(DEPTH)/chrome/common/chrome_switches.cc',
         '<(DEPTH)/chrome/common/chrome_switches.h',
         # Include sources for proxy support.
@@ -1569,7 +1605,7 @@
             '<(DEPTH)/chrome/browser/renderer_host/pepper/monitor_finder_mac.mm',
           ],
         }],
-        [ 'OS=="linux" or OS=="freebsd" or OS=="openbsd"', {
+        [ 'use_ozone==0 and (OS=="linux" or OS=="freebsd" or OS=="openbsd")', {
           'sources': [
             '<@(includes_linux)',
             'libcef/browser/native/browser_platform_delegate_native_linux.cc',
@@ -1585,15 +1621,39 @@
             'libcef/browser/native/window_x11.h',
           ],
         }],
+        [ 'use_ozone==1 and (OS=="linux" or OS=="freebsd" or OS=="openbsd")', {
+          'sources': [
+            '<@(includes_linux)',
+            'libcef/browser/native/window_delegate_view.cc',
+            'libcef/browser/native/window_delegate_view.h',
+            'libcef/browser/native/browser_platform_delegate_native_aura.cc',
+            'libcef/browser/native/browser_platform_delegate_native_aura.h',
+            'libcef/browser/osr/browser_platform_delegate_osr_linux.cc',
+            'libcef/browser/osr/browser_platform_delegate_osr_linux.h',
+            'libcef/browser/osr/render_widget_host_view_osr_aura.cc',
+            'libcef/browser/printing/print_dialog_linux.cc',
+            'libcef/browser/printing/print_dialog_linux.h',
+          ],
+          'dependencies': [
+            '<(DEPTH)/third_party/boringssl/boringssl.gyp:boringssl',
+            '<(DEPTH)/ui/aura/aura.gyp:aura_test_support',
+          ],
+        }],
         ['os_posix == 1 and OS != "mac"', {
           'dependencies': [
             '<(DEPTH)/components/components.gyp:breakpad_host',
           ],
         }],
         ['use_aura==1', {
+          'includes': [
+            '../net/net.gypi',
+          ],
           'dependencies': [
             '<(DEPTH)/ui/views/controls/webview/webview.gyp:webview',
             '<(DEPTH)/ui/views/views.gyp:views',
+            '<(DEPTH)/dbus/dbus.gyp:dbus',
+            '<(DEPTH)/build/linux/system.gyp:dbus',
+            '<(DEPTH)/third_party/boringssl/boringssl.gyp:boringssl'
           ],
           'sources': [
             'libcef/browser/native/window_delegate_view.cc',
@@ -1659,7 +1719,7 @@
             '<(DEPTH)/ui/views/test/test_views_delegate_aura.cc',
             # Support for UI input events.
             '<(DEPTH)/ui/base/test/ui_controls.h',
-            '<(DEPTH)/ui/base/test/ui_controls_aura.cc',
+            # '<(DEPTH)/ui/base/test/ui_controls_aura.cc',
             '<(DEPTH)/ui/aura/test/ui_controls_factory_aura.h',
           ],
         }, {  # use_aura!=1
@@ -1674,20 +1734,6 @@
             '<(DEPTH)/ui/aura/test/ui_controls_factory_aurawin.cc',
             '<(DEPTH)/ui/base/test/ui_controls_internal_win.cc',
             '<(DEPTH)/ui/base/test/ui_controls_internal_win.h',
-          ],
-        }],
-        ['use_aura==1 and (OS=="linux" or OS=="freebsd" or OS=="openbsd")', {
-          'sources': [
-            # Support for UI input events.
-            '<(DEPTH)/ui/aura/test/aura_test_utils.cc',
-            '<(DEPTH)/ui/aura/test/aura_test_utils.h',
-            '<(DEPTH)/ui/aura/test/ui_controls_factory_aurax11.cc',
-            '<(DEPTH)/ui/aura/test/x11_event_sender.cc',
-            '<(DEPTH)/ui/aura/test/x11_event_sender.h',
-            '<(DEPTH)/ui/events/test/platform_event_waiter.cc',
-            '<(DEPTH)/ui/events/test/platform_event_waiter.h',
-            '<(DEPTH)/ui/views/test/ui_controls_factory_desktop_aurax11.cc',
-            '<(DEPTH)/ui/views/test/ui_controls_factory_desktop_aurax11.h',
           ],
         }],
       ],
@@ -2110,10 +2156,7 @@
         ],
       }],
     }],  # OS!="mac"
-    [ '(OS=="linux" or OS=="freebsd" or OS=="openbsd") and use_sysroot==0', {
-      # Required packages are not available when using the default sysroot
-      # environment. Consequently the cefclient target cannot be built with
-      # use_sysroot==1.
+    [ 'use_ozone==0 and (OS=="linux" or OS=="freebsd" or OS=="openbsd") and use_sysroot==0', {
       'targets': [
         {
           'target_name': 'gtk',

@@ -12,8 +12,10 @@
 
 #include "libcef_dll/cpptoc/app_cpptoc.h"
 #include "libcef_dll/cpptoc/browser_process_handler_cpptoc.h"
+#include "libcef_dll/cpptoc/media_delegate_cpptoc.h"
 #include "libcef_dll/cpptoc/render_process_handler_cpptoc.h"
 #include "libcef_dll/cpptoc/resource_bundle_handler_cpptoc.h"
+#include "libcef_dll/cpptoc/sslkey_delegate_cpptoc.h"
 #include "libcef_dll/ctocpp/command_line_ctocpp.h"
 #include "libcef_dll/ctocpp/scheme_registrar_ctocpp.h"
 
@@ -107,6 +109,38 @@ struct _cef_render_process_handler_t* CEF_CALLBACK app_get_render_process_handle
   return CefRenderProcessHandlerCppToC::Wrap(_retval);
 }
 
+struct _cef_media_delegate_t* CEF_CALLBACK app_get_media_delegate(
+    struct _cef_app_t* self) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return NULL;
+
+  // Execute
+  CefRefPtr<CefMediaDelegate> _retval = CefAppCppToC::Get(
+      self)->GetMediaDelegate();
+
+  // Return type: refptr_same
+  return CefMediaDelegateCppToC::Wrap(_retval);
+}
+
+struct _cef_sslkey_delegate_t* CEF_CALLBACK app_get_sslkey_delegate(
+    struct _cef_app_t* self) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return NULL;
+
+  // Execute
+  CefRefPtr<CefSSLKeyDelegate> _retval = CefAppCppToC::Get(
+      self)->GetSSLKeyDelegate();
+
+  // Return type: refptr_same
+  return CefSSLKeyDelegateCppToC::Wrap(_retval);
+}
+
 }  // namespace
 
 
@@ -119,6 +153,8 @@ CefAppCppToC::CefAppCppToC() {
   GetStruct()->get_resource_bundle_handler = app_get_resource_bundle_handler;
   GetStruct()->get_browser_process_handler = app_get_browser_process_handler;
   GetStruct()->get_render_process_handler = app_get_render_process_handler;
+  GetStruct()->get_media_delegate = app_get_media_delegate;
+  GetStruct()->get_sslkey_delegate = app_get_sslkey_delegate;
 }
 
 template<> CefRefPtr<CefApp> CefCppToC<CefAppCppToC, CefApp,

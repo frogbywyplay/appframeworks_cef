@@ -12,7 +12,7 @@
 #include "ui/views/widget/widget.h"
 #include "ui/views/window/native_frame_view.h"
 
-#if defined(OS_LINUX)
+#if defined(OS_LINUX) && !defined(USE_AURA)
 #include <X11/Xlib.h>
 #include "ui/gfx/x/x11_types.h"
 #endif
@@ -280,7 +280,7 @@ void CefWindowView::CreateWidget() {
   // |widget| must be activatable for focus handling to work correctly.
   DCHECK(widget->widget_delegate()->CanActivate());
 
-#if defined(OS_LINUX)
+#if defined(OS_LINUX) && !defined(USE_AURA)
   if (is_frameless_) {
     ::Window window = view_util::GetWindowHandle(widget);
     DCHECK(window);

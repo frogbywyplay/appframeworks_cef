@@ -180,6 +180,12 @@ net::URLRequestContext* CefURLRequestContextGetterImpl::GetURLRequestContext() {
     if (settings_.cache_path.length > 0)
       cache_path = base::FilePath(CefString(&settings_.cache_path));
 
+    base::FilePath http_cache_path;
+    if (settings_.http_cache_path.length > 0)
+      http_cache_path = base::FilePath(CefString(&settings_.http_cache_path));
+    else if (!cache_path.empty())
+      http_cache_path = cache_path.Append(FILE_PATH_LITERAL("Cache"));
+
     url_request_context_.reset(new CefURLRequestContextImpl());
     storage_.reset(
         new net::URLRequestContextStorage(url_request_context_.get()));
@@ -241,12 +247,9 @@ net::URLRequestContext* CefURLRequestContextGetterImpl::GetURLRequestContext() {
     storage_->set_http_server_properties(base::WrapUnique(
         new net::HttpServerPropertiesImpl));
 
-    base::FilePath http_cache_path;
-    if (!cache_path.empty())
-      http_cache_path = cache_path.Append(FILE_PATH_LITERAL("Cache"));
     std::unique_ptr<net::HttpCache::DefaultBackend> main_backend(
         new net::HttpCache::DefaultBackend(
-            cache_path.empty() ? net::MEMORY_CACHE : net::DISK_CACHE,
+            http_cache_path.empty() ? net::MEMORY_CACHE : net::DISK_CACHE,
             net::CACHE_BACKEND_DEFAULT,
             http_cache_path,
             0,
@@ -272,6 +275,8 @@ net::URLRequestContext* CefURLRequestContextGetterImpl::GetURLRequestContext() {
         url_request_context_->http_server_properties();
     network_session_params.ignore_certificate_errors =
         settings_.ignore_certificate_errors ? true : false;
+    network_session_params.enable_quic = true;
+    network_session_params.enable_user_alternate_protocol_ports = true;
 
     storage_->set_http_network_session(
         base::WrapUnique(new net::HttpNetworkSession(network_session_params)));

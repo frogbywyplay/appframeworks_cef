@@ -98,7 +98,6 @@ static void AddPepperBasedWidevine(
   GetSupportedCodecsForPepperCdm(additional_param_names,
                                  additional_param_values,
                                  &codecs);
-
   SupportedCodecs supported_codecs = media::EME_CODEC_NONE;
 
   // Audio codecs are always supported.
@@ -129,7 +128,7 @@ static void AddPepperBasedWidevine(
       supported_codecs,
       media::EmeRobustness::SW_SECURE_CRYPTO,       // Maximum audio robustness.
       media::EmeRobustness::SW_SECURE_DECODE,       // Maximum video robustness.
-      media::EmeSessionTypeSupport::NOT_SUPPORTED,  // persistent-license.
+      media::EmeSessionTypeSupport::SUPPORTED,  // persistent-license.
       media::EmeSessionTypeSupport::
           NOT_SUPPORTED,                          // persistent-release-message.
       media::EmeFeatureSupport::REQUESTABLE,      // Persistent state.

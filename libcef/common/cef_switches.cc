@@ -128,4 +128,15 @@ const char kPluginPolicy_Block[]          = "block";
 // Expose preferences used only by unit tests.
 const char kEnablePreferenceTesting[]     = "enable-preference-testing";
 
+// Size of the host window in one of the following formats:
+//  - width,height: size in pixels
+//  - fb:/dev/fbX: apply the size of the framebuffer's virtual screen
+const char kHostWindowSize[]              = "host-window-size";
+
+// Use the given address instead of the default loopback for accepting remote
+// debugging connections. Should be used together with --remote-debugging-port.
+// Note that the remote debugging protocol does not perform any authentication,
+// so exposing it too widely can be a security risk.
+const char kRemoteDebuggingAddress[] = "remote-debugging-address";
+
 }  // namespace switches

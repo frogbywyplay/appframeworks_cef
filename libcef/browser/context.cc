@@ -236,9 +236,25 @@ void CefSetOSModalLoop(bool osModalLoop) {
 #endif  // defined(OS_WIN)
 }
 
+bool CefSetLocale(CefString locale) {
+  // Verify that the context is in a valid state.
+  if (!CONTEXT_STATE_VALID()) {
+    NOTREACHED() << "context not valid";
+    return false;
+  }
+
+  // Verify that the browser process is in a valid state.
+  if (!g_browser_process) {
+    NOTREACHED() << "browser process not valid";
+    return false;
+  }
+
+  g_browser_process->SetApplicationLocale(locale.ToString());
+
+  return true;
+}
 
 // CefContext
-
 CefContext::CefContext()
   : initialized_(false),
     shutting_down_(false),
@@ -383,6 +399,7 @@ void CefContext::PopulateRequestContextSettings(
   CefRefPtr<CefCommandLine> command_line =
       CefCommandLine::GetGlobalCommandLine();
   CefString(&settings->cache_path) = CefString(&settings_.cache_path);
+  CefString(&settings->http_cache_path) = CefString(&settings_.http_cache_path);
   settings->persist_session_cookies =
       settings_.persist_session_cookies ||
       command_line->HasSwitch(switches::kPersistSessionCookies);

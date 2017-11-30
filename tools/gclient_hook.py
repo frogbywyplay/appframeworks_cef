@@ -98,6 +98,8 @@ if bool(int(os.environ.get('WIN_CUSTOM_TOOLCHAIN', '0'))):
 
 os.environ['CEF_DIRECTORY'] = os.path.basename(cef_dir)
 gyper = [ 'python', '../build/gyp_chromium', 'cef.gyp', '-I', 'cef.gypi' ]
+if len(sys.argv) > 1:
+    gyper += sys.argv[1:]
 if custom_toolchain:
   # Disable GYP's auto-detection of the VS install.
   gyper.extend(['-G', 'ninja_use_custom_environment_files'])

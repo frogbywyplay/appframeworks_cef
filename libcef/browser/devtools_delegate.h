@@ -24,7 +24,7 @@ class RenderViewHost;
 class CefDevToolsDelegate :
     public devtools_http_handler::DevToolsHttpHandlerDelegate {
  public:
-  explicit CefDevToolsDelegate(uint16_t port);
+  explicit CefDevToolsDelegate(const std::string& address, uint16_t port);
   ~CefDevToolsDelegate() override;
 
   // Stops http server.

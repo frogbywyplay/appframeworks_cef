@@ -36,12 +36,7 @@ void InitializeUITesting() {
     ui_controls::EnableUIControls();
 
 #if defined(USE_AURA)
-#if defined(OS_LINUX)
-    ui_controls::InstallUIControlsAura(
-        views::test::CreateUIControlsDesktopAura());
-#else
     ui_controls::InstallUIControlsAura(aura::test::CreateUIControlsAura(NULL));
-#endif
 #endif
 
     initialized = true;

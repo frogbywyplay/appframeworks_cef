@@ -213,6 +213,11 @@ typedef struct _cef_sslinfo_t {
 } cef_sslinfo_t;
 
 
+///
+// Utility function to clear SSL session cache
+///
+CEF_EXPORT void cef_clear_sslsession_cache();
+
 #ifdef __cplusplus
 }
 #endif

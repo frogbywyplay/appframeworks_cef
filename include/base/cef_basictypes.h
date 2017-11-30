@@ -34,6 +34,9 @@
 
 #include <limits.h>         // For UINT_MAX
 #include <stddef.h>         // For size_t
+#ifndef _MSC_VER
+#include <stdint.h>         // For intxx_t and uintxx_t
+#endif
 
 #include "include/base/cef_build.h"
 
@@ -62,6 +65,50 @@ typedef int                 int32;
 #ifndef _UINT32
 #define _UINT32
 typedef unsigned int       uint32;
+#endif
+
+// TODO: Remove these type guards.  These are to avoid conflicts with
+// obsolete/protypes.h in the Gecko SDK.
+#ifndef _INT16
+#define _INT16
+#ifdef _MSC_VER
+typedef __int16            int16;
+#else
+typedef int16_t            int16;
+#endif
+#endif
+
+// TODO: Remove these type guards.  These are to avoid conflicts with
+// obsolete/protypes.h in the Gecko SDK.
+#ifndef _UINT16
+#define _UINT16
+#ifdef _MSC_VER
+typedef unsigned __int16   uint16;
+#else
+typedef uint16_t           uint16;
+#endif
+#endif
+
+// TODO: Remove these type guards.  These are to avoid conflicts with
+// obsolete/protypes.h in the Gecko SDK.
+#ifndef _INT8
+#define _INT8
+#ifdef _MSC_VER
+typedef __int8             int8;
+#else
+typedef int8_t             int8;
+#endif
+#endif
+
+// TODO: Remove these type guards.  These are to avoid conflicts with
+// obsolete/protypes.h in the Gecko SDK.
+#ifndef _UINT8
+#define _UINT8
+#ifdef _MSC_VER
+typedef unsigned __int8    uint8;
+#else
+typedef uint8_t            uint8;
+#endif
 #endif
 
 // UTF-16 character type.

@@ -200,6 +200,17 @@ IPC_SYNC_MESSAGE_CONTROL0_1(
     CefProcessHostMsg_GetNewRenderThreadInfo,
     CefProcessHostMsg_GetNewRenderThreadInfo_Params /* params*/)
 
+// Parameters to pass display information
+IPC_STRUCT_BEGIN(CefProcessHostMsg_GetDisplayInfo_Params)
+  IPC_STRUCT_MEMBER(unsigned int, width)
+  IPC_STRUCT_MEMBER(unsigned int, height)
+IPC_STRUCT_END()
+
+// Retrieve information about the display
+IPC_SYNC_MESSAGE_CONTROL0_1(
+    CefProcessHostMsg_GetDisplayInfo,
+    CefProcessHostMsg_GetDisplayInfo_Params /* params*/)
+
 // Parameters for a newly created browser window.
 IPC_STRUCT_BEGIN(CefProcessHostMsg_GetNewBrowserInfo_Params)
   IPC_STRUCT_MEMBER(int, browser_id)

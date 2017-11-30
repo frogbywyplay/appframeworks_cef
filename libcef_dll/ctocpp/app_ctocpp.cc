@@ -14,8 +14,10 @@
 #include "libcef_dll/cpptoc/scheme_registrar_cpptoc.h"
 #include "libcef_dll/ctocpp/app_ctocpp.h"
 #include "libcef_dll/ctocpp/browser_process_handler_ctocpp.h"
+#include "libcef_dll/ctocpp/media_delegate_ctocpp.h"
 #include "libcef_dll/ctocpp/render_process_handler_ctocpp.h"
 #include "libcef_dll/ctocpp/resource_bundle_handler_ctocpp.h"
+#include "libcef_dll/ctocpp/sslkey_delegate_ctocpp.h"
 
 
 // VIRTUAL METHODS - Body may be edited by hand.
@@ -101,6 +103,34 @@ CefRefPtr<CefRenderProcessHandler> CefAppCToCpp::GetRenderProcessHandler() {
 
   // Return type: refptr_same
   return CefRenderProcessHandlerCToCpp::Wrap(_retval);
+}
+
+CefRefPtr<CefMediaDelegate> CefAppCToCpp::GetMediaDelegate() {
+  cef_app_t* _struct = GetStruct();
+  if (CEF_MEMBER_MISSING(_struct, get_media_delegate))
+    return NULL;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  cef_media_delegate_t* _retval = _struct->get_media_delegate(_struct);
+
+  // Return type: refptr_same
+  return CefMediaDelegateCToCpp::Wrap(_retval);
+}
+
+CefRefPtr<CefSSLKeyDelegate> CefAppCToCpp::GetSSLKeyDelegate() {
+  cef_app_t* _struct = GetStruct();
+  if (CEF_MEMBER_MISSING(_struct, get_sslkey_delegate))
+    return NULL;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  cef_sslkey_delegate_t* _retval = _struct->get_sslkey_delegate(_struct);
+
+  // Return type: refptr_same
+  return CefSSLKeyDelegateCToCpp::Wrap(_retval);
 }
 
 

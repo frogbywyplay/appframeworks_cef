@@ -18,6 +18,7 @@
 #pragma message("Warning: "__FILE__" may be accessed DLL-side only")
 #else  // BUILDING_CEF_SHARED
 
+#include <vector>
 #include "include/cef_request_handler.h"
 #include "include/capi/cef_request_handler_capi.h"
 #include "libcef_dll/ctocpp/ctocpp.h"
@@ -69,6 +70,10 @@ class CefRequestHandlerCToCpp
       cef_errorcode_t cert_error, const CefString& request_url,
       CefRefPtr<CefSSLInfo> ssl_info,
       CefRefPtr<CefRequestCallback> callback) override;
+  bool OnNeedClientCertificate(CefRefPtr<CefBrowser> browser, int port,
+      const CefString& host, bool is_proxy, std::vector<CefString> autorithies,
+      std::vector<int> key_types,
+      CefRefPtr<CefSelectClientCertificateCallback> callback) override;
   void OnPluginCrashed(CefRefPtr<CefBrowser> browser,
       const CefString& plugin_path) override;
   void OnRenderViewReady(CefRefPtr<CefBrowser> browser) override;
