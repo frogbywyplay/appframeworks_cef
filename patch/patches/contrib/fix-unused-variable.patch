@@ -1,0 +1,17 @@
+--- ui/views/controls/menu/menu_controller.cc	2016-03-21 17:09:39.024586583 +0100
++++ ui/views/controls/menu/menu_controller.cc	2016-03-21 17:10:23.444272363 +0100
+@@ -2269,12 +2269,14 @@
+   // be used when reposting the event.
+   gfx::Point screen_loc(event->location());
+   View::ConvertPointToScreen(source->GetScrollViewContainer(), &screen_loc);
++#if defined(OS_WIN) || defined(OS_CHROMEOS)
+   gfx::NativeView native_view = source->GetWidget()->GetNativeView();
+   gfx::NativeWindow window = nullptr;
+   if (native_view) {
+     gfx::Screen* screen = gfx::Screen::GetScreenFor(native_view);
+     window = screen->GetWindowAtScreenPoint(screen_loc);
+   }
++#endif
+ 
+ #if defined(OS_WIN)
+   // We're going to close and we own the event capture. We need to repost the

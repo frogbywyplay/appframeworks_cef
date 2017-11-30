@@ -1,0 +1,101 @@
+diff -ur build/common.gypi build/common.gypi
+--- build/common.gypi	2016-02-12 15:34:31.263066522 +0100
++++ build/common.gypi	2016-02-15 11:24:35.925087551 +0100
+@@ -1886,9 +1886,7 @@
+         'use_custom_freetype%': 0,
+         'conditions': [
+           ['target_arch=="arm"', {
+-            'arm_arch%': '',
+-            'arm_tune%': 'cortex-a9',
+-            'arm_thumb%': 1,
++            'video_hole%': 1,
+           }],
+           # TODO(dalecurtis): What audio codecs does Chromecast want here?  Sort
+           # out and add configs if necessary.  http://crbug.com/570754
+@@ -2060,7 +2058,7 @@
+       }],
+ 
+       ['OS=="android" or chromecast==1', {
+-        'enable_browser_cdms%': 1,
++        'enable_browser_cdms%': 0,
+       }, {
+         'enable_browser_cdms%': 0,
+       }],
+@@ -4093,65 +4091,6 @@
+                       }],
+                     ],
+                   }],
+-                  ['chromecast==1', {
+-                    'cflags': [
+-                      # We set arm_arch to "" so that -march compiler option
+-                      # is not set.  Otherwise a gcc bug that would complain
+-                      # about it conflicting with '-mcpu=cortex-a9'. The flag
+-                      # '-march=armv7-a' is actually redundant anyway because
+-                      # it is enabled by default when we built the toolchain.
+-                      # And using '-mcpu=cortex-a9' should be sufficient.
+-                      '-mcpu=cortex-a9',
+-                      '-funwind-tables',
+-                      # Breakpad requires symbols with debugging information
+-                      '-g',
+-                    ],
+-                    'ldflags': [
+-                      # We want to statically link libstdc++/libgcc.
+-                      '-static-libstdc++',
+-                      '-static-libgcc',
+-                      # Don't allow visible symbols from libraries that contain
+-                      # assembly code with symbols that aren't hidden properly.
+-                      # http://b/26390825
+-                      '-Wl,--exclude-libs=libffmpeg.a',
+-                    ],
+-                    'cflags!': [
+-                      # Some components in Chromium (e.g. v8, skia, ffmpeg)
+-                      # define their own cflags for arm builds that could
+-                      # conflict with the flags we set here (e.g.
+-                      # '-mcpu=cortex-a9'). Remove these flags explicitly.
+-                      '-march=armv7-a',
+-                      '-mtune=cortex-a8',
+-                    ],
+-                    'target_conditions': [
+-                      [ '_type=="executable" and OS!="android"', {
+-                        # Statically link whole libstdc++ and libgcc in
+-                        # executables to ensure only one copy at runtime.
+-                        'ldflags': [
+-                          # Note executables also get -static-stdlibc++/libgcc.
+-                          # Despite including libstdc++/libgcc archives, we
+-                          # still need to specify static linking for them in
+-                          # order to prevent the executable from having a
+-                          # dynamic dependency on them.
+-
+-                          # Export stdlibc++ and libgcc symbols to force shlibs
+-                          # to refer to these symbols from the executable.
+-                          '-Wl,--export-dynamic',
+-
+-                          '-lm', # stdlibc++ requires math.h
+-
+-                          # In case we redefined stdlibc++ symbols
+-                          # (e.g. tc_malloc)
+-                          '-Wl,--allow-multiple-definition',
+-
+-                          '-Wl,--whole-archive',
+-                          '-l:libstdc++.a',
+-                          '-l:libgcc.a',
+-                          '-Wl,--no-whole-archive',
+-                        ],
+-                      }]
+-                    ],
+-                  }],
+                 ],
+               }],
+             ],
+diff -ur chromecast/chromecast.gyp chromecast/chromecast.gyp
+--- chromecast/chromecast.gyp	2016-02-12 15:35:53.677922614 +0100
++++ chromecast/chromecast.gyp	2016-02-15 11:17:35.570893783 +0100
+@@ -770,7 +770,7 @@
+           'conditions': [
+             ['ozone_platform_egltest==1', {
+               'dependencies': [
+-                '../ui/ozone/ozone.gyp:eglplatform_shim_x11',
++                '../ui/ozone/ozone.gyp:ozone_platform_eglhaisi',
+               ],
+             }],
+           ],

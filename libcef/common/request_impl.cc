@@ -606,7 +606,6 @@ void CefRequestImpl::Get(blink::WebURLRequest& request,
 void CefRequestImpl::Get(const CefMsg_LoadRequest_Params& params,
                          blink::WebURLRequest& request) {
   request.initialize();
-
   request.setURL(params.url);
   if (!params.method.empty())
     request.setHTTPMethod(base::ASCIIToUTF16(params.method));

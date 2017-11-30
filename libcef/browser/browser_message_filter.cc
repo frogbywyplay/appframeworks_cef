@@ -20,6 +20,7 @@
 #include "content/common/view_messages.h"
 #include "content/public/browser/render_process_host.h"
 #include "content/public/common/child_process_host.h"
+#include "ui/gfx/screen.h"
 
 CefBrowserMessageFilter::CefBrowserMessageFilter(int render_process_id)
     : render_process_id_(render_process_id),
@@ -56,6 +57,8 @@ bool CefBrowserMessageFilter::OnMessageReceived(const IPC::Message& message) {
                         OnGetNewRenderThreadInfo)
     IPC_MESSAGE_HANDLER_DELAY_REPLY(CefProcessHostMsg_GetNewBrowserInfo,
                                     OnGetNewBrowserInfo)
+    IPC_MESSAGE_HANDLER(CefProcessHostMsg_GetDisplayInfo,
+                        OnGetDisplayInfo)
     IPC_MESSAGE_HANDLER_DELAY_REPLY(ViewHostMsg_CreateWindow, OnCreateWindow)
     IPC_MESSAGE_UNHANDLED(handled = false)
   IPC_END_MESSAGE_MAP()
@@ -109,6 +112,21 @@ void CefBrowserMessageFilter::OnGetNewBrowserInfo(
         reply_msg);
   } else {
     delete reply_msg;
+  }
+}
+
+void CefBrowserMessageFilter::OnGetDisplayInfo(
+    CefProcessHostMsg_GetDisplayInfo_Params* params) {
+  gfx::Screen* screen = gfx::Screen::GetNativeScreen();
+  if (screen) {
+    gfx::Display display = screen->GetPrimaryDisplay();
+
+    params->width = display.bounds().width();
+    params->height = display.bounds().height();
+  }
+  else {
+    params->width = 0;
+    params->height = 0;
   }
 }
 

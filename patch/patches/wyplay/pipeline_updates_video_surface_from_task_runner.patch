@@ -1,0 +1,47 @@
+From a3fa84a538127d5d9093dd958b5f2ebfcf213b91 Mon Sep 17 00:00:00 2001
+From: Gauthier Haderer <ghaderer@wyplay.com>
+Date: Mon, 8 Aug 2016 13:16:45 +0200
+Subject: [PATCH] Pipeline updates video surface from task runner.
+
+---
+ media/base/pipeline.cc | 10 ++++++++++
+ media/base/pipeline.h  |  2 ++
+ 2 files changed, 12 insertions(+)
+
+diff --git media/base/pipeline.cc media/base/pipeline.cc
+index d531f8a..66eae69 100644
+--- media/base/pipeline.cc
++++ media/base/pipeline.cc
+@@ -871,6 +871,16 @@ void Pipeline::BufferingStateChanged(BufferingState new_buffering_state) {
+ }
+ 
+ void Pipeline::UpdateVideoSurface(int x, int y, int width, int height) {
++  base::AutoLock auto_lock(lock_);
++  if (renderer_.get()) {
++    task_runner_->PostTask(
++        FROM_HERE,
++        base::Bind(
++            &Pipeline::UpdateVideoSurfaceTask, weak_factory_.GetWeakPtr(), x, y, width, height));
++  }
++}
++
++void Pipeline::UpdateVideoSurfaceTask(int x, int y, int width, int height) {
+   if (renderer_.get())
+     renderer_->UpdateVideoSurface(x, y, width, height);
+ }
+diff --git media/base/pipeline.h media/base/pipeline.h
+index c21ef4e..a798ce3 100644
+--- media/base/pipeline.h
++++ media/base/pipeline.h
+@@ -336,6 +336,8 @@ class MEDIA_EXPORT Pipeline : public DemuxerHost {
+ 
+   void BufferingStateChanged(BufferingState new_buffering_state);
+ 
++  void UpdateVideoSurfaceTask(int x, int y, int width, int height);
++
+   // Task runner used to execute pipeline tasks.
+   scoped_refptr<base::SingleThreadTaskRunner> task_runner_;
+ 
+-- 
+1.8.5.3
+

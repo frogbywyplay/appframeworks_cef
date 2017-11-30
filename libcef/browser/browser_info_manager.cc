@@ -545,7 +545,7 @@ scoped_refptr<CefBrowserInfo> CefBrowserInfoManager::GetBrowserInfo(
 // static
 void CefBrowserInfoManager::SendNewBrowserInfoResponse(
     int render_process_id,
-    CefBrowserInfo* browser_info,
+    CefRefPtr<CefBrowserInfo> browser_info,
     bool is_guest_view,
     IPC::Message* reply_msg) {
   if (!CEF_CURRENTLY_ON_UIT()) {

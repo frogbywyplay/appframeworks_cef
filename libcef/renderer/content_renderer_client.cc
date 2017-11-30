@@ -28,6 +28,7 @@
 #include "libcef/renderer/thread_util.h"
 #include "libcef/renderer/v8_impl.h"
 #include "libcef/renderer/webkit_glue.h"
+#include "libcef/renderer/media_renderer_factory.h"
 
 #include "base/command_line.h"
 #include "base/macros.h"
@@ -622,6 +623,30 @@ CefContentRendererClient::CreateBrowserPluginDelegate(
 void CefContentRendererClient::AddKeySystems(
     std::vector<media::KeySystemInfo>* key_systems) {
   AddCefKeySystems(key_systems);
+
+#if defined(ENABLE_PEPPER_CDMS)
+#if defined(PLAYREADY_CDM_AVAILABLE)
+  static const char kPlayReadyKeySystem[] =
+      "com.microsoft.playready";
+  static const char kPlayReadyPepperType[] =
+      "application/x-ppapi-playready-cdm";
+
+  media::KeySystemInfo playreadyInfo;
+
+  playreadyInfo.key_system = kPlayReadyKeySystem;
+  playreadyInfo.supported_init_data_types = media::kInitDataTypeMaskCenc;
+  playreadyInfo.supported_codecs = media::EME_CODEC_ALL;
+  playreadyInfo.max_audio_robustness = media::EmeRobustness::HW_SECURE_CRYPTO;
+  playreadyInfo.max_video_robustness = media::EmeRobustness::HW_SECURE_CRYPTO;
+  playreadyInfo.persistent_license_support = media::EmeSessionTypeSupport::SUPPORTED;
+  playreadyInfo.persistent_release_message_support = media::EmeSessionTypeSupport::NOT_SUPPORTED;
+  playreadyInfo.persistent_state_support = media::EmeFeatureSupport::ALWAYS_ENABLED;
+  playreadyInfo.distinctive_identifier_support = media::EmeFeatureSupport::NOT_SUPPORTED;
+  playreadyInfo.pepper_type = kPlayReadyPepperType;
+
+  key_systems->push_back(playreadyInfo);
+#endif  // defined(PLAYREADY_CDM_AVAILABLE)
+#endif  // defined(ENABLE_PEPPER_CDMS)
 }
 
 void CefContentRendererClient::WillDestroyCurrentMessageLoop() {
@@ -828,6 +853,14 @@ void CefContentRendererClient::BrowserCreated(
     return;
   }
 
+  // Get screen information.
+  CefProcessHostMsg_GetDisplayInfo_Params display_params;
+  content::RenderThread::Get()->Send(
+      new CefProcessHostMsg_GetDisplayInfo(
+          &display_params));
+  display_info_.width = display_params.width;
+  display_info_.height = display_params.height;
+
   if (params.is_guest_view) {
     // Don't create a CefBrowser for guest views.
     guest_views_.insert(
@@ -886,4 +919,18 @@ void CefContentRendererClient::RunSingleProcessCleanupOnUIThread() {
   // we need to explicitly delete the object when not running in this mode.
   if (!CefContext::Get()->settings().multi_threaded_message_loop)
     delete host;
+}
+
+scoped_ptr<media::RendererFactory> CefContentRendererClient::CreateMediaRendererFactory(
+      content::RenderFrame* render_frame,
+      media::GpuVideoAcceleratorFactories* gpu_factories,
+      const scoped_refptr<media::MediaLog>& media_log)
+{
+  return scoped_ptr<media::RendererFactory>(new CefRendererFactory(render_frame, gpu_factories, media_log,
+        base::Bind(&CefContentRendererClient::GetDisplayInfo,
+          base::Unretained(this))));
+}
+
+CefDisplayInfo CefContentRendererClient::GetDisplayInfo() {
+  return display_info_;
 }

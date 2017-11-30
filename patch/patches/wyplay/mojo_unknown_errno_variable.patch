@@ -1,0 +1,12 @@
+diff --git mojo/edk/system/child_broker_host.cc mojo/edk/system/child_broker_host.cc
+index e321b05..dc14238 100644
+--- mojo/edk/system/child_broker_host.cc
++++ mojo/edk/system/child_broker_host.cc
+@@ -4,6 +4,7 @@
+ 
+ #include "mojo/edk/system/child_broker_host.h"
+ 
++#include <errno.h>
+ #include <stdint.h>
+ 
+ #include <utility>

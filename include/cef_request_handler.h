@@ -69,6 +69,18 @@ class CefRequestCallback : public virtual CefBase {
   virtual void Cancel() =0;
 };
 
+///
+// Callback class used to return the pah to the certificate and its key
+///
+/*--cef(source=library)--*/
+class CefSelectClientCertificateCallback : public virtual CefBase {
+ public:
+  ///
+  // Called by the client to return the path to the certificat and its key
+  ///
+  /*--cef(capi_name=run)--*/
+  virtual void Run(CefString cert_path, CefString key_path) =0;
+};
 
 ///
 // Implement this interface to handle events related to browser requests. The
@@ -131,7 +143,7 @@ class CefRequestHandler : public virtual CefBase {
   // immediately. Return RV_CONTINUE_ASYNC and call CefRequestCallback::
   // Continue() at a later time to continue or cancel the request
   // asynchronously. Return RV_CANCEL to cancel the request immediately.
-  // 
+  //
   ///
   /*--cef(default_retval=RV_CONTINUE)--*/
   virtual ReturnValue OnBeforeResourceLoad(
@@ -276,6 +288,24 @@ class CefRequestHandler : public virtual CefBase {
       const CefString& request_url,
       CefRefPtr<CefSSLInfo> ssl_info,
       CefRefPtr<CefRequestCallback> callback) {
+    return false;
+  }
+
+  ///
+  // Called on the UI thread to handle requests for URLs with no maching
+  // SSL certificate. Return true and call callback.Run() with the path to the
+  // certificate formatted in DER as a CefString and the key path as a CefString
+  // Return false to cancel the request immediately.
+  ///
+  /*--cef(count_func=key_types:size)--*/
+  virtual bool OnNeedClientCertificate(
+      CefRefPtr<CefBrowser> browser,
+      int port,
+      const CefString& host,
+      bool is_proxy,
+      std::vector<CefString> autorithies,
+      std::vector<int> key_types,
+      CefRefPtr<CefSelectClientCertificateCallback> callback) {
     return false;
   }
 

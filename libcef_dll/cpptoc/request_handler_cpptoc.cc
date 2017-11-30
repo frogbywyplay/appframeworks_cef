@@ -20,6 +20,8 @@
 #include "libcef_dll/ctocpp/request_callback_ctocpp.h"
 #include "libcef_dll/ctocpp/response_ctocpp.h"
 #include "libcef_dll/ctocpp/sslinfo_ctocpp.h"
+#include "libcef_dll/ctocpp/select_client_certificate_callback_ctocpp.h"
+#include "libcef_dll/transfer_util.h"
 
 
 namespace {
@@ -460,6 +462,48 @@ int CEF_CALLBACK request_handler_on_certificate_error(
   return _retval;
 }
 
+int CEF_CALLBACK request_handler_on_need_client_certificate(
+    struct _cef_request_handler_t* self, cef_browser_t* browser, int port,
+    const cef_string_t* host, int is_proxy, cef_string_list_t autorithies,
+    size_t* key_typesCount, int* key_types,
+    cef_select_client_certificate_callback_t* callback)
+{
+DCHECK(self);
+  if (!self)
+    return 0;
+  // Verify param: browser; type: refptr_diff
+  DCHECK(browser);
+  if (!browser)
+    return 0;
+  // Verify param: request_url; type: string_byref_const
+  DCHECK(host);
+  if (!host)
+    return 0;
+  // Verify param: callback; type: refptr_diff
+  DCHECK(callback);
+  if (!callback)
+    return 0;
+
+  std::vector<CefString> autorithiesList;
+  transfer_string_list_contents(autorithies, autorithiesList);
+
+  std::vector<int> key_typesVector;
+  for (size_t i = 0; i < *key_typesCount; i++)
+    key_typesVector.push_back(key_types[i]);
+
+  // Execute
+  bool _retval = CefRequestHandlerCppToC::Get(self)->OnNeedClientCertificate(
+    CefBrowserCToCpp::Wrap(browser),
+    port,
+    CefString(host),
+    is_proxy ? true : false,
+    autorithiesList,
+    key_typesVector,
+    CefSelectClientCertificateCallbackCToCpp::Wrap(callback));
+
+  // Return type: bool
+  return _retval;
+}
 void CEF_CALLBACK request_handler_on_plugin_crashed(
     struct _cef_request_handler_t* self, cef_browser_t* browser,
     const cef_string_t* plugin_path) {
@@ -540,6 +584,8 @@ CefRequestHandlerCppToC::CefRequestHandlerCppToC() {
   GetStruct()->on_quota_request = request_handler_on_quota_request;
   GetStruct()->on_protocol_execution = request_handler_on_protocol_execution;
   GetStruct()->on_certificate_error = request_handler_on_certificate_error;
+  GetStruct()->on_need_client_certificate =
+      request_handler_on_need_client_certificate;
   GetStruct()->on_plugin_crashed = request_handler_on_plugin_crashed;
   GetStruct()->on_render_view_ready = request_handler_on_render_view_ready;
   GetStruct()->on_render_process_terminated =

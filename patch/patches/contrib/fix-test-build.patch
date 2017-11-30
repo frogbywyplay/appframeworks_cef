@@ -1,0 +1,45 @@
+diff -ur chrome/chrome_tests.gypi chrome/chrome_tests.gypi
+--- chrome/chrome_tests.gypi	2016-02-12 15:35:46.438023097 +0100
++++ chrome/chrome_tests.gypi	2016-02-15 11:45:39.143665530 +0100
+@@ -2138,7 +2138,6 @@
+         '../device/serial/serial.gyp:device_serial_test_util',
+         '../extensions/common/api/api.gyp:extensions_api',
+         '../google_apis/google_apis.gyp:google_apis_test_support',
+-        '../media/cast/cast.gyp:cast_test_utility',
+         '../media/media.gyp:media',
+         '../net/net.gyp:net',
+         '../net/net.gyp:net_test_support',
+@@ -2665,7 +2664,6 @@
+         '../base/base.gyp:base_i18n',
+         '../base/base.gyp:test_support_base',
+         '../components/components.gyp:autofill_content_test_support',
+-        '../media/cast/cast.gyp:cast_test_utility',
+         '../net/net.gyp:net',
+         '../net/net.gyp:net_test_support',
+         '../skia/skia.gyp:skia',
+diff -ur chrome/test/data/webui_test_resources.grd chrome/test/data/webui_test_resources.grd
+--- chrome/test/data/webui_test_resources.grd	2016-02-12 15:35:12.342496325 +0100
++++ chrome/test/data/webui_test_resources.grd	2016-02-15 11:45:13.948012983 +0100
+@@ -8,7 +8,6 @@
+   </outputs>
+   <release seq="1">
+     <includes>
+-      <include name="IDR_WEBUI_TEST_I18N_PROCESS_CSS_TEST" file="webui/i18n_process_css_test.html" flattenhtml="true" allowexternalscript="true" type="BINDATA" />
+     </includes>
+   </release>
+ </grit>
+diff -ur device/serial/serial.gyp device/serial/serial.gyp
+--- device/serial/serial.gyp	2016-02-12 15:34:32.515049143 +0100
++++ device/serial/serial.gyp	2016-02-15 11:46:07.979267902 +0100
+@@ -39,11 +39,6 @@
+           'dependencies': [
+             '../udev_linux/udev.gyp:udev_linux',
+           ],
+-        }, {
+-          'sources!': [
+-            'serial_device_enumerator_linux.cc',
+-            'serial_device_enumerator_linux.h',
+-          ],
+         }],
+       ],
+       'dependencies': [

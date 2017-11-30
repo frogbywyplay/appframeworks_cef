@@ -1,0 +1,52 @@
+diff -ur cc/trees/layer_tree_host.cc cc/trees/layer_tree_host.cc
+--- cc/trees/layer_tree_host.cc	2016-02-12 15:38:28.959767746 +0100
++++ cc/trees/layer_tree_host.cc	2016-02-12 15:40:02.442470732 +0100
+@@ -139,8 +139,8 @@
+       has_gpu_rasterization_trigger_(false),
+       content_is_suitable_for_gpu_rasterization_(true),
+       gpu_rasterization_histogram_recorded_(false),
+-      background_color_(SK_ColorWHITE),
+-      has_transparent_background_(false),
++      background_color_(0x0),
++      has_transparent_background_(true),
+       did_complete_scale_animation_(false),
+       in_paint_layer_contents_(false),
+       id_(s_layer_tree_host_sequence_number.GetNext() + 1),
+diff -ur content/browser/renderer_host/render_widget_host_view_base.cc content/browser/renderer_host/render_widget_host_view_base.cc
+--- content/browser/renderer_host/render_widget_host_view_base.cc	2016-02-12 15:34:59.314677151 +0100
++++ content/browser/renderer_host/render_widget_host_view_base.cc	2016-02-12 15:40:26.186141333 +0100
+@@ -367,8 +367,8 @@
+ 
+ RenderWidgetHostViewBase::RenderWidgetHostViewBase()
+     : popup_type_(blink::WebPopupTypeNone),
+-      background_color_(SK_ColorWHITE),
+-      mouse_locked_(false),
++      background_color_(0x0),
++      mouse_locked_(true),
+       showing_context_menu_(false),
+       selection_text_offset_(0),
+       selection_range_(gfx::Range::InvalidRange()),
+diff -ur third_party/WebKit/Source/web/WebViewImpl.cpp third_party/WebKit/Source/web/WebViewImpl.cpp
+--- third_party/WebKit/Source/web/WebViewImpl.cpp	2016-02-12 15:36:28.573438318 +0100
++++ third_party/WebKit/Source/web/WebViewImpl.cpp	2016-02-12 15:40:49.309820549 +0100
+@@ -486,7 +486,7 @@
+     , m_operationsAllowed(WebDragOperationNone)
+     , m_dragOperation(WebDragOperationNone)
+     , m_devToolsEmulator(nullptr)
+-    , m_isTransparent(false)
++    , m_isTransparent(true)
+     , m_tabsToLinks(false)
+     , m_layerTreeView(nullptr)
+     , m_rootLayer(nullptr)
+diff -ur ui/aura/window.cc ui/aura/window.cc
+--- ui/aura/window.cc	2016-02-12 15:34:46.258858371 +0100
++++ ui/aura/window.cc	2016-02-12 15:41:08.425555372 +0100
+@@ -90,7 +90,7 @@
+       parent_(NULL),
+       visible_(false),
+       id_(-1),
+-      transparent_(false),
++      transparent_(true),
+       user_data_(NULL),
+       ignore_events_(false),
+       // Don't notify newly added observers during notification. This causes

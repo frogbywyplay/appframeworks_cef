@@ -311,7 +311,8 @@ SkColor GetBaseBackgroundColor(CefRefPtr<CefBrowserHostImpl> browser) {
         CefColorGetB(settings.background_color));
   }
 
-  return SK_ColorWHITE;
+  // Set default color to transparent
+  return 0x0;
 }
 
 }  // namespace

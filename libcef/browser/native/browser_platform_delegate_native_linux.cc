@@ -14,7 +14,9 @@
 #include "libcef/browser/context.h"
 #include "libcef/browser/native/menu_runner_linux.h"
 #include "libcef/browser/native/window_delegate_view.h"
+#ifdef USE_X11
 #include "libcef/browser/native/window_x11.h"
+#endif
 #include "libcef/browser/thread_util.h"
 
 #include "content/browser/renderer_host/render_widget_host_impl.h"

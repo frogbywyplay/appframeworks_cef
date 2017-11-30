@@ -22,7 +22,6 @@
 #include "libcef/browser/javascript_dialog_manager.h"
 #include "libcef/browser/menu_manager.h"
 #include "libcef/common/response_manager.h"
-
 #include "base/memory/scoped_ptr.h"
 #include "base/observer_list.h"
 #include "base/strings/string16.h"

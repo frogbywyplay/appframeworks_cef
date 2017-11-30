@@ -37,6 +37,8 @@ class CefAppCToCpp
   CefRefPtr<CefResourceBundleHandler> GetResourceBundleHandler() override;
   CefRefPtr<CefBrowserProcessHandler> GetBrowserProcessHandler() override;
   CefRefPtr<CefRenderProcessHandler> GetRenderProcessHandler() override;
+  CefRefPtr<CefMediaDelegate> GetMediaDelegate() override;
+  CefRefPtr<CefSSLKeyDelegate> GetSSLKeyDelegate() override;
 };
 
 #endif  // BUILDING_CEF_SHARED

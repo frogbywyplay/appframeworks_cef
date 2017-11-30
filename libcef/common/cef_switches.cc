@@ -132,4 +132,9 @@ const char kPluginPolicy_Block[]          = "block";
 // Expose preferences used only by unit tests.
 const char kEnablePreferenceTesting[]     = "enable-preference-testing";
 
+// Size of the host window in one of the following formats:
+//  - width,height: size in pixels
+//  - fb:/dev/fbX: apply the size of the framebuffer's virtual screen
+const char kHostWindowSize[]              = "host-window-size";
+
 }  // namespace switches

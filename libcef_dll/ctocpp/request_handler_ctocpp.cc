@@ -17,9 +17,11 @@
 #include "libcef_dll/cpptoc/request_callback_cpptoc.h"
 #include "libcef_dll/cpptoc/response_cpptoc.h"
 #include "libcef_dll/cpptoc/sslinfo_cpptoc.h"
+#include "libcef_dll/cpptoc/select_client_certificate_callback_cpptoc.h"
 #include "libcef_dll/ctocpp/request_handler_ctocpp.h"
 #include "libcef_dll/ctocpp/resource_handler_ctocpp.h"
 #include "libcef_dll/ctocpp/response_filter_ctocpp.h"
+#include "libcef_dll/transfer_util.h"
 
 
 // VIRTUAL METHODS - Body may be edited by hand.
@@ -446,6 +448,54 @@ bool CefRequestHandlerCToCpp::OnCertificateError(CefRefPtr<CefBrowser> browser,
   return _retval?true:false;
 }
 
+bool CefRequestHandlerCToCpp::OnNeedClientCertificate(
+    CefRefPtr<CefBrowser> browser, int port, const CefString& host,
+    bool is_proxy, std::vector<CefString> autorithies,
+    std::vector<int> key_types,
+    CefRefPtr<CefSelectClientCertificateCallback> callback)
+{
+  cef_request_handler_t* _struct = GetStruct();
+  if (CEF_MEMBER_MISSING(_struct, on_need_client_certificate))
+    return false;
+
+  // Verify param: browser; type: refptr_diff
+  DCHECK(browser.get());
+  if (!browser.get())
+    return false;
+  // Verify param: request_url; type: string_byref_const
+  DCHECK(!host.empty());
+  if (host.empty())
+    return false;
+  // Verify param: callback; type: refptr_diff
+  DCHECK(callback.get());
+  if (!callback.get())
+    return false;
+
+  cef_string_list_t autorithiesList = cef_string_list_alloc();
+  DCHECK(autorithiesList);
+  if (autorithiesList)
+    transfer_string_list_contents(autorithies, autorithiesList);
+
+  int *key_typesList = new int[key_types.size()];
+  size_t key_typesCount = key_types.size();
+  for (size_t i = 0; i < key_typesCount; i++)
+    key_typesList[i] = key_types[i];
+
+  // Execute
+  int _retval = _struct->on_need_client_certificate(
+    _struct,
+    CefBrowserCppToC::Wrap(browser),
+    port,
+    host.GetStruct(),
+    is_proxy ? 1 : 0,
+    autorithiesList,
+    &key_typesCount,
+    key_typesList,
+    CefSelectClientCertificateCallbackCppToC::Wrap(callback));
+
+  // Return type: bool
+  return _retval?true:false;
+}
 void CefRequestHandlerCToCpp::OnPluginCrashed(CefRefPtr<CefBrowser> browser,
     const CefString& plugin_path) {
   cef_request_handler_t* _struct = GetStruct();

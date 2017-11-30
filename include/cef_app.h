@@ -45,6 +45,8 @@
 #include "include/cef_render_process_handler.h"
 #include "include/cef_resource_bundle_handler.h"
 #include "include/cef_scheme.h"
+#include "include/cef_media_delegate.h"
+#include "include/cef_ssl_key_delegate.h"
 
 class CefApp;
 
@@ -193,6 +195,22 @@ class CefApp : public virtual CefBase {
   ///
   /*--cef()--*/
   virtual CefRefPtr<CefRenderProcessHandler> GetRenderProcessHandler() {
+    return NULL;
+  }
+
+  ///
+  // Return a media renderer to use with the chromium media pipeline
+  ///
+  /*--cef()--*/
+  virtual CefRefPtr<CefMediaDelegate> GetMediaDelegate() {
+    return NULL;
+  }
+
+  ///
+  // Return a delegate used to manipulate SSL keys
+  ///
+  /*--cef()--*/
+  virtual CefRefPtr<CefSSLKeyDelegate> GetSSLKeyDelegate() {
     return NULL;
   }
 };

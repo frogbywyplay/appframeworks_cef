@@ -14,6 +14,8 @@
 #include "include/capi/cef_app_capi.h"
 #include "include/cef_geolocation.h"
 #include "include/capi/cef_geolocation_capi.h"
+#include "include/cef_network_change_notification.h"
+#include "include/capi/cef_network_change_notification_capi.h"
 #include "include/cef_origin_whitelist.h"
 #include "include/capi/cef_origin_whitelist_capi.h"
 #include "include/cef_parser.h"
@@ -24,6 +26,8 @@
 #include "include/capi/cef_process_util_capi.h"
 #include "include/cef_scheme.h"
 #include "include/capi/cef_scheme_capi.h"
+#include "include/cef_ssl_info.h"
+#include "include/capi/cef_ssl_info_capi.h"
 #include "include/cef_task.h"
 #include "include/capi/cef_task_capi.h"
 #include "include/cef_trace.h"
@@ -51,6 +55,7 @@
 #include "libcef_dll/cpptoc/geolocation_callback_cpptoc.h"
 #include "libcef_dll/cpptoc/jsdialog_callback_cpptoc.h"
 #include "libcef_dll/cpptoc/list_value_cpptoc.h"
+#include "libcef_dll/cpptoc/media_event_callback_cpptoc.h"
 #include "libcef_dll/cpptoc/menu_model_cpptoc.h"
 #include "libcef_dll/cpptoc/navigation_entry_cpptoc.h"
 #include "libcef_dll/cpptoc/print_dialog_callback_cpptoc.h"
@@ -62,6 +67,7 @@
 #include "libcef_dll/cpptoc/sslcert_principal_cpptoc.h"
 #include "libcef_dll/cpptoc/sslinfo_cpptoc.h"
 #include "libcef_dll/cpptoc/scheme_registrar_cpptoc.h"
+#include "libcef_dll/cpptoc/select_client_certificate_callback_cpptoc.h"
 #include "libcef_dll/cpptoc/stream_reader_cpptoc.h"
 #include "libcef_dll/cpptoc/stream_writer_cpptoc.h"
 #include "libcef_dll/cpptoc/task_runner_cpptoc.h"
@@ -95,6 +101,7 @@
 #include "libcef_dll/ctocpp/keyboard_handler_ctocpp.h"
 #include "libcef_dll/ctocpp/life_span_handler_ctocpp.h"
 #include "libcef_dll/ctocpp/load_handler_ctocpp.h"
+#include "libcef_dll/ctocpp/media_delegate_ctocpp.h"
 #include "libcef_dll/ctocpp/navigation_entry_visitor_ctocpp.h"
 #include "libcef_dll/ctocpp/pdf_print_callback_ctocpp.h"
 #include "libcef_dll/ctocpp/print_handler_ctocpp.h"
@@ -107,6 +114,7 @@
 #include "libcef_dll/ctocpp/resource_handler_ctocpp.h"
 #include "libcef_dll/ctocpp/response_filter_ctocpp.h"
 #include "libcef_dll/ctocpp/run_file_dialog_callback_ctocpp.h"
+#include "libcef_dll/ctocpp/sslkey_delegate_ctocpp.h"
 #include "libcef_dll/ctocpp/scheme_handler_factory_ctocpp.h"
 #include "libcef_dll/ctocpp/set_cookie_callback_ctocpp.h"
 #include "libcef_dll/ctocpp/string_visitor_ctocpp.h"
@@ -232,6 +240,8 @@ CEF_EXPORT void cef_shutdown() {
   DCHECK(base::AtomicRefCountIsZero(&CefLifeSpanHandlerCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefListValueCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefLoadHandlerCToCpp::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefMediaDelegateCToCpp::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefMediaEventCallbackCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefMenuModelCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefNavigationEntryCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(
@@ -259,9 +269,12 @@ CEF_EXPORT void cef_shutdown() {
       &CefRunFileDialogCallbackCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefSSLCertPrincipalCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefSSLInfoCppToC::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(&CefSSLKeyDelegateCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(
       &CefSchemeHandlerFactoryCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefSchemeRegistrarCppToC::DebugObjCt));
+  DCHECK(base::AtomicRefCountIsZero(
+      &CefSelectClientCertificateCallbackCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefSetCookieCallbackCToCpp::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefStreamReaderCppToC::DebugObjCt));
   DCHECK(base::AtomicRefCountIsZero(&CefStreamWriterCppToC::DebugObjCt));
@@ -340,6 +353,21 @@ CEF_EXPORT int cef_get_geolocation(
 
   // Return type: bool
   return _retval;
+}
+
+CEF_EXPORT void cef_network_type_changed(cef_connection_type_t type) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  CefNetworkTypeChanged(
+      type);
+}
+
+CEF_EXPORT void cef_network_ipaddress_changed() {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  CefNetworkIPAddressChanged();
 }
 
 CEF_EXPORT int cef_add_cross_origin_whitelist_entry(
@@ -769,6 +797,13 @@ CEF_EXPORT int cef_clear_scheme_handler_factories() {
 
   // Return type: bool
   return _retval;
+}
+
+CEF_EXPORT void cef_clear_sslsession_cache() {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  CefClearSSLSessionCache();
 }
 
 CEF_EXPORT int cef_currently_on(cef_thread_id_t threadId) {

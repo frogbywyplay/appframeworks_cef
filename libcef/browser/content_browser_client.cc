@@ -5,6 +5,10 @@
 #include "libcef/browser/content_browser_client.h"
 
 #include <algorithm>
+#include <string>
+#include <fstream>
+#include <streambuf>
+#include <iostream>
 #include <utility>
 
 #include "libcef/browser/browser_info.h"
@@ -75,6 +79,11 @@
 #include "third_party/WebKit/public/web/WebWindowFeatures.h"
 #include "ui/base/ui_base_switches.h"
 #include "url/gurl.h"
+
+#include "net/cert/x509_certificate.h"
+#include "net/ssl/ssl_cert_request_info.h"
+#include "net/ssl/openssl_client_key_store.h"
+#include <openssl/pem.h>
 
 #if defined(OS_MACOSX)
 #include "chrome/browser/spellchecker/spellcheck_message_filter_platform.h"
@@ -723,6 +732,75 @@ void CefContentBrowserClient::AllowCertificateError(
                       content::CERTIFICATE_REQUEST_RESULT_TYPE_CANCEL;
 }
 
+class CefSelectClientCertificateCallbackImpl : public CefSelectClientCertificateCallback {
+
+  public:
+    CefSelectClientCertificateCallbackImpl(scoped_ptr<content::ClientCertificateDelegate>& delegate)
+      : delegate_(std::move(delegate)) {
+    }
+
+    ~CefSelectClientCertificateCallbackImpl() {}
+
+    virtual void Run(CefString cert_content, CefString key_content) override
+    {
+      if (!delegate_.get())
+        return;
+
+      net::OpenSSLClientKeyStore* key_store = net::OpenSSLClientKeyStore::GetInstance();
+      if (!key_store) {
+        LOG(WARNING) << "No client key store";
+	 delegate_->ContinueWithCertificate(NULL);
+        return;
+      }
+
+      if (cert_content.size() == 0 || key_content.size() == 0) {
+        LOG(WARNING) << "Certificate or key is empty";
+	 delegate_->ContinueWithCertificate(NULL);
+        return;
+      }
+
+      std::string cert_content_str = cert_content.ToString();
+      net::CertificateList certificates =
+        net::X509Certificate::CreateCertificateListFromBytes(cert_content_str.c_str(),
+            cert_content_str.size(), net::X509Certificate::FORMAT_SINGLE_CERTIFICATE);
+      if (certificates.empty()) {
+        LOG(WARNING) << "Failed to create X509 certificate";
+	 delegate_->ContinueWithCertificate(NULL);
+        return;
+      }
+
+      scoped_refptr<net::X509Certificate> cert = certificates[0];
+
+      std::string key_content_str = key_content.ToString();
+      BIO* bio_key = BIO_new_mem_buf((void*)key_content_str.c_str(), key_content_str.size());
+      if (bio_key) {
+        crypto::ScopedEVP_PKEY pkey(PEM_read_bio_PrivateKey(bio_key, NULL, NULL, NULL));
+        if (pkey.get()) {
+          if (!key_store->RecordClientCertPrivateKey(cert.get(), pkey.get())) {
+            LOG(WARNING) << "Failed to add certificate";
+          } else {
+            LOG(INFO) << "Add certificate Subject:" << cert->subject().GetDisplayName()
+                      << " Issuer:" << cert->issuer().GetDisplayName();
+          }
+        } else {
+          LOG(WARNING) << "Failed to read private key";
+        }
+
+        BIO_free(bio_key);
+      } else {
+        LOG(WARNING) << "Failed to allocate memory to read private key";
+      }
+
+      delegate_->ContinueWithCertificate(cert.get());
+    }
+
+  private:
+
+    scoped_ptr<content::ClientCertificateDelegate> delegate_;
+
+    IMPLEMENT_REFCOUNTING(CefSelectClientCertificateCallbackImpl);
+};
+
 void CefContentBrowserClient::SelectClientCertificate(
     content::WebContents* web_contents,
     net::SSLCertRequestInfo* cert_request_info,
@@ -730,7 +808,42 @@ void CefContentBrowserClient::SelectClientCertificate(
   if (!cert_request_info->client_certs.empty()) {
     // Use the first certificate.
     delegate->ContinueWithCertificate(cert_request_info->client_certs[0].get());
+    return;
   }
+
+  // Otherwise ask RequestHandler
+  CefRefPtr<CefBrowserHostImpl> browser =
+    CefBrowserHostImpl::GetBrowserForContents(web_contents);
+  if (!browser.get())
+    return;
+
+  CefRefPtr<CefClient> client = browser->GetClient();
+  if (!client.get())
+    return;
+
+  CefRefPtr<CefRequestHandler> handler = client->GetRequestHandler();
+  if (!handler.get())
+    return;
+
+  std::vector<int> key_types(cert_request_info->cert_key_types.begin(),
+                             cert_request_info->cert_key_types.end());
+  std::vector<CefString> authorities;
+
+  for (std::vector<std::string>::const_iterator it = cert_request_info->cert_authorities.begin();
+       it != cert_request_info->cert_authorities.end();
+       it++)
+    authorities.push_back(CefString(*it));
+
+  CefRefPtr<CefSelectClientCertificateCallbackImpl> callbackImpl =
+    new CefSelectClientCertificateCallbackImpl(delegate);
+  handler->OnNeedClientCertificate(
+    browser->GetBrowser(),
+    cert_request_info->host_and_port.port(),
+    CefString(cert_request_info->host_and_port.host()),
+    cert_request_info->is_proxy,
+    authorities,
+    key_types,
+    callbackImpl);
 }
 
 content::AccessTokenStore* CefContentBrowserClient::CreateAccessTokenStore() {

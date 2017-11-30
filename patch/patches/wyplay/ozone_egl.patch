@@ -1,0 +1,43 @@
+diff --git build/common.gypi build/common.gypi
+index 628cf76..58cba05 100644
+--- build/common.gypi
++++ build/common.gypi
+@@ -1578,6 +1578,7 @@
+     'ozone_platform_caca%': 0,
+     'ozone_platform_cast%': 0,
+     'ozone_platform_egltest%': 0,
++    'ozone_platform_eglhaisi%': 0,
+     'ozone_platform_gbm%': 0,
+     'ozone_platform_ozonex%': 0,
+     'ozone_platform_headless%': 0,
+diff --git media/ozone/media_ozone_platform.cc media/ozone/media_ozone_platform.cc
+index f17d827..1006faf 100644
+--- media/ozone/media_ozone_platform.cc
++++ media/ozone/media_ozone_platform.cc
+@@ -49,6 +49,10 @@ MediaOzonePlatform* CreateMediaOzonePlatformEgltest() {
+   return new MediaOzonePlatformStub;
+ }
+ 
++MediaOzonePlatform* CreateMediaOzonePlatformEglhaisi() {
++  return new MediaOzonePlatformStub;
++}
++
+ MediaOzonePlatform* CreateMediaOzonePlatformGbm() {
+   return new MediaOzonePlatformStub;
+ }
+diff --git ui/ozone/ozone.gyp ui/ozone/ozone.gyp
+index a878f8e..5d4c203 100644
+--- ui/ozone/ozone.gyp
++++ ui/ozone/ozone.gyp
+@@ -240,6 +240,11 @@
+         'platform/egltest/egltest.gypi',
+       ],
+     }],
++    ['<(ozone_platform_eglhaisi) == 1', {
++      'includes': [
++        'platform/eglhaisi/eglhaisi.gypi',
++      ],
++    }],
+     ['<(ozone_platform_gbm) == 1', {
+       'includes': [
+         'platform/drm/gbm.gypi',

@@ -1,0 +1,74 @@
+--- net/disk_cache/memory/mem_entry_impl.cc	2016-03-28 21:04:01.000000000 +0200
++++ net/disk_cache/memory/mem_entry_impl.cc	2016-10-14 17:38:15.009688900 +0200
+@@ -121,19 +121,12 @@
+ }
+ 
+ void MemEntryImpl::Open() {
+-  // Only a parent entry can be opened.
+-  // TODO(hclam): make sure it's correct to not apply the concept of ref
+-  // counting to child entry.
+-  DCHECK(type() == kParentEntry);
+   ref_count_++;
+   DCHECK_GE(ref_count_, 0);
+   DCHECK(!doomed_);
+ }
+ 
+ bool MemEntryImpl::InUse() {
+-  if (type() == kChildEntry)
+-    return parent_->InUse();
+-
+   return ref_count_ > 0;
+ }
+ 
+@@ -153,8 +146,6 @@
+ }
+ 
+ void MemEntryImpl::Close() {
+-  // Only a parent entry can be closed.
+-  DCHECK(type() == kParentEntry);
+   ref_count_--;
+   DCHECK_GE(ref_count_, 0);
+   if (!ref_count_ && doomed_)
+@@ -443,6 +434,11 @@
+                                               write_len));
+     }
+ 
++    // Prevent the child entry from being doomed while we are using it. Indeed,
++    // writing data may force the cache to free memory, and it may decide to
++    // doom this entry.
++    child->Open();
++
+     // Always writes to the child entry. This operation may overwrite data
+     // previously written.
+     // TODO(hclam): if there is data in the entry and this write is not
+@@ -453,17 +449,24 @@
+       net_log_.EndEventWithNetErrorCode(
+           net::NetLog::TYPE_SPARSE_WRITE_CHILD_DATA, ret);
+     }
++
++    if (ret > 0) {
++      // Keep a record of the first byte position in the child if the write was
++      // not aligned nor continuous. This is to enable witting to the middle
++      // of an entry and still keep track of data off the aligned edge.
++      if (data_size != child_offset)
++        child->child_first_pos_ = child_offset;
++    }
++
++    // Now we can safely release the child entry. It will delete the entry
++    // if it was doomed while it was opened.
++    child->Close();
++
+     if (ret < 0)
+       return ret;
+     else if (ret == 0)
+       break;
+ 
+-    // Keep a record of the first byte position in the child if the write was
+-    // not aligned nor continuous. This is to enable witting to the middle
+-    // of an entry and still keep track of data off the aligned edge.
+-    if (data_size != child_offset)
+-      child->child_first_pos_ = child_offset;
+-
+     // Adjust the offset in the IO buffer.
+     io_buf->DidConsume(ret);
+   }

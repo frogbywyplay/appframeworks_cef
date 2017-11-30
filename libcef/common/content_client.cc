@@ -59,6 +59,16 @@ const char kPDFPluginOutOfProcessMimeType[] =
 const uint32_t kPDFPluginPermissions = ppapi::PERMISSION_PRIVATE |
                                        ppapi::PERMISSION_DEV;
 
+#if defined(PLAYREADY_CDM_AVAILABLE)
+const char kPlayReadyCdmAdapterFileName[] = "libplayreadycdmadapter.so";
+const char kPlayReadyPluginName[] = "PlayReady CDM";
+const char kPlayReadyPluginMimeType[] = "application/x-ppapi-playready-cdm";
+const char kPlayReadyPluginExtension[] = "";
+const char kPlayReadyPluginDescription[] = "PlayReady Content Decryption Module";
+const uint32 kPlayReadyPluginPermissions = ppapi::PERMISSION_PRIVATE |
+                                           ppapi::PERMISSION_DEV;
+#endif  // defined(PLAYREADY_CDM_AVAILABLE)
+
 content::PepperPluginInfo::GetInterfaceFunc g_pdf_get_interface;
 content::PepperPluginInfo::PPP_InitializeModuleFunc g_pdf_initialize_module;
 content::PepperPluginInfo::PPP_ShutdownModuleFunc g_pdf_shutdown_module;
@@ -244,6 +254,32 @@ void AddWidevineCdmFromCommandLine(
         // !defined(WIDEVINE_CDM_IS_COMPONENT)
 }
 
+void AddPlayReadyCdmFromCommandLine(
+    std::vector<content::PepperPluginInfo>* plugins) {
+#if defined(PLAYREADY_CDM_AVAILABLE) && defined(ENABLE_PEPPER_CDMS)
+  base::FilePath path;
+  static bool skip_playready_file_check = false;
+  if (PathService::Get(base::DIR_MODULE, &path)) {
+    path = path.Append(FILE_PATH_LITERAL(kPlayReadyCdmAdapterFileName));
+    if (skip_playready_file_check || base::PathExists(path)) {
+      content::PepperPluginInfo playready;
+      playready.path = path;
+      playready.name = kPlayReadyPluginName;
+      // Only in-process loading is currently supported. See issue #1331.
+      playready.is_out_of_process = false;
+      content::WebPluginMimeType playready_mime_type(kPlayReadyPluginMimeType,
+          kPlayReadyPluginExtension,
+          kPlayReadyPluginDescription);
+      playready.mime_types.push_back(playready_mime_type);
+      playready.permissions = kPlayReadyPluginPermissions;
+      plugins->push_back(playready);
+
+      skip_playready_file_check = true;
+    }
+  }
+#endif  // defined(PLAYREADY_CDM_AVAILABLE) && defined(ENABLE_PEPPER_CDMS)
+}
+
 }  // namespace
 
 const char CefContentClient::kPDFPluginPath[] = "internal-pdf-viewer";
@@ -271,6 +307,7 @@ void CefContentClient::AddPepperPlugins(
   ComputeBuiltInPlugins(plugins);
   AddPepperFlashFromCommandLine(plugins);
   AddWidevineCdmFromCommandLine(plugins);
+  AddPlayReadyCdmFromCommandLine(plugins);
 
   content::PepperPluginInfo plugin;
   if (GetSystemPepperFlash(&plugin))

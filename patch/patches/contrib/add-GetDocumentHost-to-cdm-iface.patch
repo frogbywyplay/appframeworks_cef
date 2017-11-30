@@ -1,0 +1,104 @@
+diff -ur media/cdm/api/content_decryption_module.h media/cdm/api/content_decryption_module.h
+--- media/cdm/api/content_decryption_module.h	2016-02-12 15:38:21.559870423 +0100
++++ media/cdm/api/content_decryption_module.h	2016-02-12 15:57:53.279626051 +0100
+@@ -5,6 +5,8 @@
+ #ifndef CDM_CONTENT_DECRYPTION_MODULE_H_
+ #define CDM_CONTENT_DECRYPTION_MODULE_H_
+ 
++#include <string>
++
+ #if defined(_MSC_VER)
+ typedef unsigned char uint8_t;
+ typedef unsigned int uint32_t;
+@@ -980,6 +982,10 @@
+   // CDM can call this method multiple times to operate on different files.
+   virtual FileIO* CreateFileIO(FileIOClient* client) = 0;
+ 
++  // Basic workaround to retrieve current document URL
++  // to ensure per-app/per-domain CDM persistent storage
++  virtual std::string GetDocumentHost() = 0;
++
+  protected:
+   Host_7() {}
+   virtual ~Host_7() {}
+@@ -1117,6 +1123,10 @@
+   // CDM can call this method multiple times to operate on different files.
+   virtual FileIO* CreateFileIO(FileIOClient* client) = 0;
+ 
++  // Basic workaround to retrieve current document URL
++  // to ensure per-app/per-domain CDM persistent storage
++  virtual std::string GetDocumentHost() = 0;
++
+  protected:
+   Host_8() {}
+   virtual ~Host_8() {}
+diff -ur media/cdm/cdm_adapter.cc media/cdm/cdm_adapter.cc
+--- media/cdm/cdm_adapter.cc	2016-02-12 15:38:21.591869979 +0100
++++ media/cdm/cdm_adapter.cc	2016-02-12 17:05:54.110656365 +0100
+@@ -957,4 +957,8 @@
+   return true;
+ }
+ 
++std::string CdmAdapter::GetDocumentHost() {
++  return "";
++}
++
+ }  // namespace media
+diff -ur media/cdm/cdm_adapter.h media/cdm/cdm_adapter.h
+--- media/cdm/cdm_adapter.h	2016-02-12 15:38:21.563870368 +0100
++++ media/cdm/cdm_adapter.h	2016-02-12 16:31:30.527509219 +0100
+@@ -140,6 +140,7 @@
+   void OnDeferredInitializationDone(cdm::StreamType stream_type,
+                                     cdm::Status decoder_status) override;
+   cdm::FileIO* CreateFileIO(cdm::FileIOClient* client) override;
++  std::string GetDocumentHost() override;
+ 
+  private:
+   CdmAdapter(const std::string& key_system,
+diff -ur media/cdm/ppapi/ppapi_cdm_adapter.cc media/cdm/ppapi/ppapi_cdm_adapter.cc
+--- media/cdm/ppapi/ppapi_cdm_adapter.cc	2016-02-12 15:38:21.587870034 +0100
++++ media/cdm/ppapi/ppapi_cdm_adapter.cc	2016-02-12 17:07:57.332920399 +0100
+@@ -15,10 +15,8 @@
+ #include "ppapi/c/ppb_console.h"
+ #include "ppapi/cpp/private/uma_private.h"
+ 
+-#if defined(CHECK_DOCUMENT_URL)
+ #include "ppapi/cpp/dev/url_util_dev.h"
+ #include "ppapi/cpp/instance_handle.h"
+-#endif  // defined(CHECK_DOCUMENT_URL)
+ 
+ namespace {
+ 
+@@ -1139,6 +1137,20 @@
+       callback_factory_.NewCallback(&PpapiCdmAdapter::OnFirstFileRead));
+ }
+ 
++std::string PpapiCdmAdapter::GetDocumentHost() {
++  PP_URLComponents_Dev url_components = {};
++  const pp::URLUtil_Dev* url_util = pp::URLUtil_Dev::Get();
++  if (!url_util)
++    return "";
++
++  pp::Var href = url_util->GetDocumentURL(pp::InstanceHandle(pp_instance()),
++                                          &url_components);
++  std::string url = href.AsString();
++  std::string url_host =
++      url.substr(url_components.host.begin, url_components.host.len);
++  return url_host;
++}
++
+ #if defined(OS_CHROMEOS)
+ void PpapiCdmAdapter::ReportOutputProtectionUMA(OutputProtectionStatus status) {
+   pp::UMAPrivate uma_interface(this);
+diff -ur media/cdm/ppapi/ppapi_cdm_adapter.h media/cdm/ppapi/ppapi_cdm_adapter.h
+--- media/cdm/ppapi/ppapi_cdm_adapter.h	2016-02-12 15:38:21.567870312 +0100
++++ media/cdm/ppapi/ppapi_cdm_adapter.h	2016-02-12 17:07:13.605536372 +0100
+@@ -131,6 +131,7 @@
+   void OnDeferredInitializationDone(cdm::StreamType stream_type,
+                                     cdm::Status decoder_status) override;
+   cdm::FileIO* CreateFileIO(cdm::FileIOClient* client) override;
++  std::string GetDocumentHost() override;
+ 
+  private:
+   // These are reported to UMA server. Do not change the existing values!
+Seulement dans b: X1_Add_browser_transparency.patch

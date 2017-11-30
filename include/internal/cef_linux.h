@@ -81,6 +81,7 @@ struct CefWindowInfoTraits {
     target->width = src->width;
     target->height = src->height;
     target->parent_window = src->parent_window;
+    target->z_index = src->z_index;
     target->windowless_rendering_enabled = src->windowless_rendering_enabled;
     target->transparent_painting_enabled = src->transparent_painting_enabled;
     target->window = src->window;
@@ -106,6 +107,13 @@ class CefWindowInfo : public CefStructBase<CefWindowInfoTraits> {
     y = windowRect.y;
     width = windowRect.width;
     height = windowRect.height;
+  }
+
+  ///
+  // Create the browser with a specific z index.
+  ///
+  void SetZIndex(int zIndex) {
+    z_index = zIndex;
   }
 
   ///

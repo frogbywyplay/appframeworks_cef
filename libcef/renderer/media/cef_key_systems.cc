@@ -91,11 +91,6 @@ static void AddPepperBasedWidevine(
     return;
   }
 
-  std::vector<std::string> codecs;
-  GetSupportedCodecsForPepperCdm(additional_param_names,
-                                 additional_param_values,
-                                 &codecs);
-
   SupportedCodecs supported_codecs = media::EME_CODEC_NONE;
 
   // Audio codecs are always supported.
@@ -103,26 +98,16 @@ static void AddPepperBasedWidevine(
   // as those may offer a higher level of protection.
   supported_codecs |= media::EME_CODEC_WEBM_OPUS;
   supported_codecs |= media::EME_CODEC_WEBM_VORBIS;
-#if defined(USE_PROPRIETARY_CODECS)
   supported_codecs |= media::EME_CODEC_MP4_AAC;
-#endif  // defined(USE_PROPRIETARY_CODECS)
-
-  for (size_t i = 0; i < codecs.size(); ++i) {
-    if (codecs[i] == kCdmSupportedCodecVp8)
-      supported_codecs |= media::EME_CODEC_WEBM_VP8;
-    if (codecs[i] == kCdmSupportedCodecVp9)
-      supported_codecs |= media::EME_CODEC_WEBM_VP9;
-#if defined(USE_PROPRIETARY_CODECS)
-    if (codecs[i] == kCdmSupportedCodecAvc1)
-      supported_codecs |= media::EME_CODEC_MP4_AVC1;
-#endif  // defined(USE_PROPRIETARY_CODECS)
-  }
+  supported_codecs |= media::EME_CODEC_WEBM_VP8;
+  supported_codecs |= media::EME_CODEC_WEBM_VP9;
+  supported_codecs |= media::EME_CODEC_MP4_AVC1;
 
   cdm::AddWidevineWithCodecs(
       cdm::WIDEVINE, supported_codecs,
       media::EmeRobustness::SW_SECURE_CRYPTO,       // Maximum audio robustness.
       media::EmeRobustness::SW_SECURE_DECODE,       // Maximum video robustness.
-      media::EmeSessionTypeSupport::NOT_SUPPORTED,  // persistent-license.
+      media::EmeSessionTypeSupport::SUPPORTED,  // persistent-license.
       media::EmeSessionTypeSupport::
           NOT_SUPPORTED,                        // persistent-release-message.
       media::EmeFeatureSupport::REQUESTABLE,    // Persistent state.

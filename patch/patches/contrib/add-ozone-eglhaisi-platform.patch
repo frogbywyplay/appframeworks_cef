@@ -1,0 +1,28 @@
+diff -ur media/ozone/media_ozone_platform.cc media/ozone/media_ozone_platform.cc
+--- media/ozone/media_ozone_platform.cc	2016-02-12 15:38:21.603869813 +0100
++++ media/ozone/media_ozone_platform.cc	2016-02-15 10:31:41.956702696 +0100
+@@ -57,6 +57,10 @@
+   return new MediaOzonePlatformStub;
+ }
+ 
++MediaOzonePlatform* CreateMediaOzonePlatformEglhaisi() {
++  return new MediaOzonePlatformStub;
++}
++
+ MediaOzonePlatform::MediaOzonePlatform() {
+   CHECK(!instance_) << "There should only be a single MediaOzonePlatform.";
+   instance_ = this;
+diff -ur ui/ozone/ozone.gyp ui/ozone/ozone.gyp
+--- ui/ozone/ozone.gyp	2016-02-12 15:34:49.006820227 +0100
++++ ui/ozone/ozone.gyp	2016-02-15 10:31:11.613116612 +0100
+@@ -250,5 +250,10 @@
+         'platform/headless/headless.gypi',
+       ],
+     }],
++    ['<(ozone_platform_eglhaisi) == 1', {
++      'includes': [
++        'platform/eglhaisi/eglhaisi.gypi',
++      ],
++    }],
+   ],
+ }

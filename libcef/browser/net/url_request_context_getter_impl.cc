@@ -144,6 +144,10 @@ net::URLRequestContext* CefURLRequestContextGetterImpl::GetURLRequestContext() {
     if (settings_.cache_path.length > 0)
       cache_path = base::FilePath(CefString(&settings_.cache_path));
 
+    base::FilePath http_cache_path;
+    if (settings_.http_cache_path.length > 0)
+      http_cache_path = base::FilePath(CefString(&settings_.http_cache_path));
+
     url_request_context_.reset(new CefURLRequestContextImpl());
     storage_.reset(
         new net::URLRequestContextStorage(url_request_context_.get()));
@@ -206,9 +210,9 @@ net::URLRequestContext* CefURLRequestContextGetterImpl::GetURLRequestContext() {
 
     scoped_ptr<net::HttpCache::DefaultBackend> main_backend(
         new net::HttpCache::DefaultBackend(
-            cache_path.empty() ? net::MEMORY_CACHE : net::DISK_CACHE,
+            http_cache_path.empty() ? net::MEMORY_CACHE : net::DISK_CACHE,
             net::CACHE_BACKEND_DEFAULT,
-            cache_path,
+            http_cache_path,
             0,
             BrowserThread::GetMessageLoopProxyForThread(
                 BrowserThread::CACHE)));

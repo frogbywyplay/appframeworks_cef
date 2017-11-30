@@ -1,0 +1,108 @@
+diff --git cc/base/switches.cc cc/base/switches.cc
+index 9cf6d5c..16f96d9 100644
+--- cc/base/switches.cc
++++ cc/base/switches.cc
+@@ -66,6 +66,12 @@ const char kDisableCompositorPropertyTrees[] =
+ const char kShowCompositedLayerBorders[] = "show-composited-layer-borders";
+ const char kUIShowCompositedLayerBorders[] = "ui-show-layer-borders";
+ 
++// Draws a heads-up-display showing Frames Per Second as well as GPU memory
++// usage. If you also use --enable-logging=stderr --vmodule="head*=1" then FPS
++// will also be output to the console log.
++const char kShowFPSCounter[] = "show-fps-counter";
++const char kUIShowFPSCounter[] = "ui-show-fps-counter";
++
+ // Renders a border that represents the bounding box for the layer's animation.
+ const char kShowLayerAnimationBounds[] = "show-layer-animation-bounds";
+ const char kUIShowLayerAnimationBounds[] = "ui-show-layer-animation-bounds";
+diff --git cc/base/switches.h cc/base/switches.h
+index d8c6717..3465eaf 100644
+--- cc/base/switches.h
++++ cc/base/switches.h
+@@ -35,6 +35,8 @@ CC_EXPORT extern const char kDisableCompositorPropertyTrees[];
+ // Debug visualizations.
+ CC_EXPORT extern const char kShowCompositedLayerBorders[];
+ CC_EXPORT extern const char kUIShowCompositedLayerBorders[];
++CC_EXPORT extern const char kShowFPSCounter[];
++CC_EXPORT extern const char kUIShowFPSCounter[];
+ CC_EXPORT extern const char kShowLayerAnimationBounds[];
+ CC_EXPORT extern const char kUIShowLayerAnimationBounds[];
+ CC_EXPORT extern const char kShowPropertyChangedRects[];
+diff --git chrome/browser/chromeos/login/chrome_restart_request.cc chrome/browser/chromeos/login/chrome_restart_request.cc
+index 3c14526..637ce3a 100644
+--- chrome/browser/chromeos/login/chrome_restart_request.cc
++++ chrome/browser/chromeos/login/chrome_restart_request.cc
+@@ -200,12 +200,14 @@ void DeriveCommandLine(const GURL& start_url,
+     cc::switches::kEnablePropertyTreeVerification,
+     cc::switches::kEnableMainFrameBeforeActivation,
+     cc::switches::kShowCompositedLayerBorders,
++    cc::switches::kShowFPSCounter,
+     cc::switches::kShowLayerAnimationBounds,
+     cc::switches::kShowPropertyChangedRects,
+     cc::switches::kShowReplicaScreenSpaceRects,
+     cc::switches::kShowScreenSpaceRects,
+     cc::switches::kShowSurfaceDamageRects,
+     cc::switches::kSlowDownRasterScaleFactor,
++    cc::switches::kUIShowFPSCounter,
+     chromeos::switches::kConsumerDeviceManagementUrl,
+     chromeos::switches::kDbusStub,
+     chromeos::switches::kDbusUnstubClients,
+diff --git content/browser/renderer_host/compositor_impl_android.cc content/browser/renderer_host/compositor_impl_android.cc
+index 74f1e70..4d83832 100644
+--- content/browser/renderer_host/compositor_impl_android.cc
++++ content/browser/renderer_host/compositor_impl_android.cc
+@@ -357,6 +357,8 @@ void CompositorImpl::CreateLayerTreeHost() {
+   base::CommandLine* command_line = base::CommandLine::ForCurrentProcess();
+   settings.initial_debug_state.SetRecordRenderingStats(
+       command_line->HasSwitch(cc::switches::kEnableGpuBenchmarking));
++  settings.initial_debug_state.show_fps_counter =
++      command_line->HasSwitch(cc::switches::kUIShowFPSCounter);
+   if (command_line->HasSwitch(cc::switches::kDisableCompositorPropertyTrees))
+     settings.use_property_trees = false;
+   settings.single_thread_proxy_scheduler = true;
+diff --git content/browser/renderer_host/render_process_host_impl.cc content/browser/renderer_host/render_process_host_impl.cc
+index 667dc22..b153815 100644
+--- content/browser/renderer_host/render_process_host_impl.cc
++++ content/browser/renderer_host/render_process_host_impl.cc
+@@ -1485,6 +1485,7 @@ void RenderProcessHostImpl::PropagateBrowserCommandLineToRenderer(
+     cc::switches::kEnableGpuBenchmarking,
+     cc::switches::kEnableMainFrameBeforeActivation,
+     cc::switches::kShowCompositedLayerBorders,
++    cc::switches::kShowFPSCounter,
+     cc::switches::kShowLayerAnimationBounds,
+     cc::switches::kShowPropertyChangedRects,
+     cc::switches::kShowReplicaScreenSpaceRects,
+diff --git content/renderer/render_view_impl.cc content/renderer/render_view_impl.cc
+index c2c266c..2701d90 100644
+--- content/renderer/render_view_impl.cc
++++ content/renderer/render_view_impl.cc
+@@ -31,6 +31,7 @@
+ #include "base/time/time.h"
+ #include "base/trace_event/trace_event.h"
+ #include "build/build_config.h"
++#include "cc/base/switches.h"
+ #include "content/child/appcache/appcache_dispatcher.h"
+ #include "content/child/appcache/web_application_cache_host_impl.h"
+ #include "content/child/child_shared_bitmap_manager.h"
+@@ -741,6 +742,8 @@ void RenderViewImpl::Initialize(const ViewMsg_New_Params& params,
+   webview()->settings()->setRootLayerScrolls(
+       command_line.HasSwitch(switches::kRootLayerScrolls));
+ 
++  webview()->setShowFPSCounter(
++      command_line.HasSwitch(cc::switches::kShowFPSCounter));
+   ApplyWebPreferencesInternal(webkit_preferences_, webview(), compositor_deps_);
+ 
+   if (switches::IsTouchDragDropEnabled())
+diff --git ui/compositor/compositor.cc ui/compositor/compositor.cc
+index afb5026..2a26699 100644
+--- ui/compositor/compositor.cc
++++ ui/compositor/compositor.cc
+@@ -126,6 +126,8 @@ Compositor::Compositor(ui::ContextFactory* context_factory,
+   // These flags should be mirrored by renderer versions in content/renderer/.
+   settings.initial_debug_state.show_debug_borders =
+       command_line->HasSwitch(cc::switches::kUIShowCompositedLayerBorders);
++  settings.initial_debug_state.show_fps_counter =
++      command_line->HasSwitch(cc::switches::kUIShowFPSCounter);
+   settings.initial_debug_state.show_layer_animation_bounds_rects =
+       command_line->HasSwitch(cc::switches::kUIShowLayerAnimationBounds);
+   settings.initial_debug_state.show_paint_rects =

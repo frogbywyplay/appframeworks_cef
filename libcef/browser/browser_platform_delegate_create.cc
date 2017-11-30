@@ -15,7 +15,11 @@
 #include "libcef/browser/native/browser_platform_delegate_native_mac.h"
 #include "libcef/browser/osr/browser_platform_delegate_osr_mac.h"
 #elif defined(OS_LINUX)
+#if defined(USE_AURA)
+#include "libcef/browser/native/browser_platform_delegate_native_aura.h"
+#else
 #include "libcef/browser/native/browser_platform_delegate_native_linux.h"
+#endif
 #include "libcef/browser/osr/browser_platform_delegate_osr_linux.h"
 #else
 #error A delegate implementation is not available for your platform.
@@ -30,8 +34,13 @@ scoped_ptr<CefBrowserPlatformDelegateNative> CreateNativeDelegate(
 #elif defined(OS_MACOSX)
   return make_scoped_ptr(new CefBrowserPlatformDelegateNativeMac(window_info));
 #elif defined(OS_LINUX)
+#if defined(USE_AURA)
+  return make_scoped_ptr(
+      new CefBrowserPlatformDelegateNativeAura(window_info));
+#else
   return make_scoped_ptr(
       new CefBrowserPlatformDelegateNativeLinux(window_info));
+#endif
 #endif
 }
 

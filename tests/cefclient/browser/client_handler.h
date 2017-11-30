@@ -15,7 +15,7 @@
 #include "include/wrapper/cef_resource_manager.h"
 #include "cefclient/browser/client_types.h"
 
-#if defined(OS_LINUX)
+#if defined(OS_LINUX) && !defined(USE_AURA)
 #include "cefclient/browser/dialog_handler_gtk.h"
 #endif
 

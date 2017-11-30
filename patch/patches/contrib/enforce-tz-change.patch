@@ -1,0 +1,11 @@
+--- a/content/browser/time_zone_monitor_linux.cc	2016-02-12 15:34:59.882669268 +0100
++++ b/content/browser/time_zone_monitor_linux.cc	2016-02-15 11:39:52.160451918 +0100
+@@ -88,7 +88,7 @@
+     // false positives are harmless, assuming the false positive rate is
+     // reasonable.
+     const char* kFilesToWatch[] = {
+-      "/etc/localtime",
++      "/data/localtime",
+       "/etc/timezone",
+       "/etc/TZ",
+     };

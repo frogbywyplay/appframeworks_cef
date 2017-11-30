@@ -1,0 +1,187 @@
+diff -ur cc/layers/video_layer.cc cc/layers/video_layer.cc
+--- cc/layers/video_layer.cc	2016-02-12 15:38:29.115765581 +0100
++++ cc/layers/video_layer.cc	2016-02-12 17:26:59.684804453 +0100
+@@ -11,14 +11,16 @@
+ scoped_refptr<VideoLayer> VideoLayer::Create(
+     const LayerSettings& settings,
+     VideoFrameProvider* provider,
+-    media::VideoRotation video_rotation) {
+-  return make_scoped_refptr(new VideoLayer(settings, provider, video_rotation));
++    media::VideoRotation video_rotation,
++    media::Pipeline* pipeline) {
++  return make_scoped_refptr(new VideoLayer(settings, provider, video_rotation, pipeline));
+ }
+ 
+ VideoLayer::VideoLayer(const LayerSettings& settings,
+                        VideoFrameProvider* provider,
+-                       media::VideoRotation video_rotation)
+-    : Layer(settings), provider_(provider), video_rotation_(video_rotation) {
++                       media::VideoRotation video_rotation,
++                       media::Pipeline* pipeline)
++    : Layer(settings), provider_(provider), video_rotation_(video_rotation), pipeline_(pipeline) {
+   DCHECK(provider_);
+ }
+ 
+@@ -38,6 +40,20 @@
+   // communicate this directly to the VideoLayerImpl.
+   updated |= !update_rect_.IsEmpty();
+ 
++  if (pipeline_) {
++    cc::Layer* p_layer = this;
++    gfx::RectF rect(gfx::SizeF(p_layer->bounds()));
++    int x = 0;
++    int y = 0;
++    while (p_layer) {
++      rect.Offset(p_layer->position().OffsetFromOrigin());
++      x += (p_layer->position().x() - p_layer->scroll_offset().x());
++      y += (p_layer->position().y() - p_layer->scroll_offset().y());
++      p_layer = p_layer->parent();
++    }
++    pipeline_->UpdateVideoSurface(x, y, rect.width(), rect.height());
++  }
++
+   return updated;
+ }
+ 
+diff -ur cc/layers/video_layer.h cc/layers/video_layer.h
+--- cc/layers/video_layer.h	2016-02-12 15:38:29.111765637 +0100
++++ cc/layers/video_layer.h	2016-02-12 17:28:07.199849212 +0100
+@@ -10,6 +10,7 @@
+ #include "cc/base/cc_export.h"
+ #include "cc/layers/layer.h"
+ #include "media/base/video_rotation.h"
++#include "media/base/pipeline.h"
+ 
+ namespace media { class VideoFrame; }
+ 
+@@ -23,7 +24,8 @@
+  public:
+   static scoped_refptr<VideoLayer> Create(const LayerSettings& settings,
+                                           VideoFrameProvider* provider,
+-                                          media::VideoRotation video_rotation);
++                                          media::VideoRotation video_rotation,
++                                          media::Pipeline* pipeline);
+ 
+   scoped_ptr<LayerImpl> CreateLayerImpl(LayerTreeImpl* tree_impl) override;
+ 
+@@ -32,7 +34,8 @@
+  private:
+   VideoLayer(const LayerSettings& settings,
+              VideoFrameProvider* provider,
+-             media::VideoRotation video_rotation);
++             media::VideoRotation video_rotation,
++             media::Pipeline* pipeline);
+   ~VideoLayer() override;
+ 
+   // This pointer is only for passing to VideoLayerImpl's constructor. It should
+@@ -41,6 +44,8 @@
+ 
+   media::VideoRotation video_rotation_;
+ 
++  media::Pipeline* pipeline_;
++
+   DISALLOW_COPY_AND_ASSIGN(VideoLayer);
+ };
+ 
+diff -ur content/renderer/media/webmediaplayer_ms.cc content/renderer/media/webmediaplayer_ms.cc
+--- content/renderer/media/webmediaplayer_ms.cc	2016-02-12 15:34:57.878697083 +0100
++++ content/renderer/media/webmediaplayer_ms.cc	2016-02-12 17:28:46.299296115 +0100
+@@ -435,7 +435,7 @@
+     if (video_frame_provider_.get()) {
+       video_weblayer_.reset(new cc_blink::WebLayerImpl(
+           cc::VideoLayer::Create(cc_blink::WebLayerImpl::LayerSettings(),
+-                                 compositor_.get(), media::VIDEO_ROTATION_0)));
++                                 compositor_.get(), media::VIDEO_ROTATION_0, NULL)));
+       video_weblayer_->layer()->SetContentsOpaque(true);
+       video_weblayer_->SetContentsOpaqueIsFixed(true);
+       get_client()->setWebLayer(video_weblayer_.get());
+diff -ur media/base/pipeline.cc media/base/pipeline.cc
+--- media/base/pipeline.cc	2016-02-12 15:38:19.987892235 +0100
++++ media/base/pipeline.cc	2016-02-12 17:29:11.602938212 +0100
+@@ -870,4 +870,9 @@
+   buffering_state_cb_.Run(new_buffering_state);
+ }
+ 
++void Pipeline::UpdateVideoSurface(int x, int y, int width, int height) {
++  if (renderer_.get())
++    renderer_->UpdateVideoSurface(x, y, width, height);
++}
++
+ }  // namespace media
+diff -ur media/base/pipeline.h media/base/pipeline.h
+--- media/base/pipeline.h	2016-02-12 15:38:19.959892624 +0100
++++ media/base/pipeline.h	2016-02-12 17:29:33.202632724 +0100
+@@ -214,6 +214,7 @@
+ 
+   void SetErrorForTesting(PipelineStatus status);
+   bool HasWeakPtrsForTesting() const;
++  void UpdateVideoSurface(int x, int y, int width, int height);
+ 
+  private:
+   FRIEND_TEST_ALL_PREFIXES(PipelineTest, GetBufferedTimeRanges);
+diff -ur media/base/renderer.h media/base/renderer.h
+--- media/base/renderer.h	2016-02-12 15:38:20.031891625 +0100
++++ media/base/renderer.h	2016-02-12 17:30:00.962240149 +0100
+@@ -77,6 +77,8 @@
+   // Returns whether |this| renders video.
+   virtual bool HasVideo() = 0;
+ 
++  virtual void UpdateVideoSurface(int x, int y, int width, int height) = 0;
++
+  private:
+   DISALLOW_COPY_AND_ASSIGN(Renderer);
+ };
+diff -ur media/blink/webmediaplayer_impl.cc media/blink/webmediaplayer_impl.cc
+--- media/blink/webmediaplayer_impl.cc	2016-02-12 15:38:19.851894122 +0100
++++ media/blink/webmediaplayer_impl.cc	2016-02-12 17:30:56.433455787 +0100
+@@ -1015,7 +1015,7 @@
+     DCHECK(!video_weblayer_);
+     scoped_refptr<cc::VideoLayer> layer =
+         cc::VideoLayer::Create(cc_blink::WebLayerImpl::LayerSettings(),
+-                               compositor_, pipeline_metadata_.video_rotation);
++                               compositor_, pipeline_metadata_.video_rotation, &pipeline_);
+ 
+     if (pipeline_metadata_.video_rotation == VIDEO_ROTATION_90 ||
+         pipeline_metadata_.video_rotation == VIDEO_ROTATION_270) {
+@@ -1477,6 +1477,16 @@
+                                         base::TimeDelta::FromSeconds(2), this,
+                                         &WebMediaPlayerImpl::ReportMemoryUsage);
+   }
++
++  if (video_weblayer_.get()) {
++    cc::Layer* p_layer = video_weblayer_->layer();
++    gfx::RectF rect(gfx::SizeF(p_layer->bounds()));
++    while (p_layer) {
++      rect.Offset(p_layer->position().OffsetFromOrigin());
++      p_layer = p_layer->parent();
++    }
++    pipeline_.UpdateVideoSurface(rect.x(), rect.y(), rect.width(), rect.height());
++  }
+ }
+ 
+ void WebMediaPlayerImpl::NotifyPlaybackPaused() {
+diff -ur media/renderers/renderer_impl.cc media/renderers/renderer_impl.cc
+--- media/renderers/renderer_impl.cc	2016-02-12 15:38:19.867893900 +0100
++++ media/renderers/renderer_impl.cc	2016-02-12 17:31:46.096753674 +0100
+@@ -212,6 +212,10 @@
+   return video_renderer_ != NULL;
+ }
+ 
++void RendererImpl::UpdateVideoSurface(int x, int y, int width, int height) {
++  // Nothing to do here !// Nothing to do here !
++}
++
+ void RendererImpl::DisableUnderflowForTesting() {
+   DVLOG(1) << __FUNCTION__;
+   DCHECK(task_runner_->BelongsToCurrentThread());
+diff -ur media/renderers/renderer_impl.h media/renderers/renderer_impl.h
+--- media/renderers/renderer_impl.h	2016-02-12 15:38:19.871893845 +0100
++++ media/renderers/renderer_impl.h	2016-02-12 17:32:15.956331592 +0100
+@@ -63,6 +63,7 @@
+   base::TimeDelta GetMediaTime() final;
+   bool HasAudio() final;
+   bool HasVideo() final;
++  void UpdateVideoSurface(int x, int y, int width, int height) final;
+ 
+   // Helper functions for testing purposes. Must be called before Initialize().
+   void DisableUnderflowForTesting();

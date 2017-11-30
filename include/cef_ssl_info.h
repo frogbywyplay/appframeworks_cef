@@ -153,7 +153,7 @@ class CefSSLInfo : public virtual CefBase {
   ///
   /*--cef()--*/
   virtual CefRefPtr<CefBinaryValue> GetSerialNumber() =0;
-  
+
   ///
   // Returns the date before which the X.509 certificate is invalid.
   // CefTime.GetTimeT() will return 0 if no date was specified.
@@ -203,5 +203,11 @@ class CefSSLInfo : public virtual CefBase {
   /*--cef(count_func=chain:GetIssuerChainSize)--*/
   virtual void GetPEMEncodedIssuerChain(IssuerChainBinaryList& chain) =0;
 };
+
+///
+// Utility function to clear SSL session cache
+///
+/*--cef()--*/
+void CefClearSSLSessionCache();
 
 #endif  // CEF_INCLUDE_CEF_SSL_INFO_H_

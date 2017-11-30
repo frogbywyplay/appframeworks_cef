@@ -381,6 +381,7 @@ void CefContext::PopulateRequestContextSettings(
   CefRefPtr<CefCommandLine> command_line =
       CefCommandLine::GetGlobalCommandLine();
   CefString(&settings->cache_path) = CefString(&settings_.cache_path);
+  CefString(&settings->http_cache_path) = CefString(&settings_.http_cache_path);
   settings->persist_session_cookies =
       settings_.persist_session_cookies ||
       command_line->HasSwitch(switches::kPersistSessionCookies);

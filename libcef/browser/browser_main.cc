@@ -21,6 +21,7 @@
 #include "libcef/common/extensions/extensions_client.h"
 #include "libcef/common/extensions/extensions_util.h"
 #include "libcef/common/net/net_resource_provider.h"
+#include "libcef/browser/network_change_notifier.h"
 
 #include "base/bind.h"
 #include "base/command_line.h"
@@ -40,8 +41,11 @@
 #if defined(USE_AURA)
 #include "ui/aura/env.h"
 #include "ui/gfx/screen.h"
+#if defined(TOOLKIT_VIEWS)
 #include "ui/views/test/desktop_test_views_delegate.h"
 #include "ui/views/widget/desktop_aura/desktop_screen.h"
+#endif
+#include "ui/aura/test/test_screen.h"
 
 #if defined(OS_WIN)
 #include "ui/base/cursor/cursor_loader_win.h"
@@ -68,6 +72,8 @@ CefBrowserMainParts::~CefBrowserMainParts() {
 void CefBrowserMainParts::PreMainMessageLoopStart() {
   if (!base::MessageLoop::current()) {
     // Create the browser message loop.
+    net::NetworkChangeNotifier::SetFactory(
+      new CefNetworkChangeNotifierFactory());
     message_loop_.reset(new CefBrowserMessageLoop());
     message_loop_->set_thread_name("CrBrowserMain");
   }
@@ -85,7 +91,9 @@ void CefBrowserMainParts::ToolkitInitialized() {
 #if defined(USE_AURA)
   CHECK(aura::Env::GetInstance());
 
+#if defined(TOOLKIT_VIEWS)
   new views::DesktopTestViewsDelegate;
+#endif
 
 #if defined(OS_WIN)
   ui::CursorLoaderWin::SetCursorResourceModule(
@@ -120,8 +128,13 @@ int CefBrowserMainParts::PreCreateThreads() {
   content::GpuDataManager::GetInstance();
 
 #if defined(USE_AURA)
+  #if defined(TOOLKIT_VIEWS)
   gfx::Screen::SetScreenInstance(gfx::SCREEN_TYPE_NATIVE,
                                  views::CreateDesktopScreen());
+  #else
+  aura::TestScreen* screen = aura::TestScreen::Create(gfx::Size());
+  gfx::Screen::SetScreenInstance(gfx::SCREEN_TYPE_NATIVE, screen);
+  #endif
 #endif
 
   return 0;
@@ -193,9 +206,10 @@ void CefBrowserMainParts::PostMainMessageLoopRun() {
 void CefBrowserMainParts::PostDestroyThreads() {
 #if defined(USE_AURA)
   aura::Env::DeleteInstance();
-
+#if defined(TOOLKIT_VIEWS)
   // Delete the DesktopTestViewsDelegate.
   delete views::ViewsDelegate::GetInstance();
+#endif
 #endif
 
 #ifndef NDEBUG

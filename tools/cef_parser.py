@@ -375,7 +375,7 @@ def dict_to_str(dict):
 
 
 # regex for matching comment-formatted attributes
-_cre_attrib = '/\*--cef\(([A-Za-z0-9_ ,=:\n]{0,})\)--\*/'
+_cre_attrib = '/\*--cef\(([-A-Za-z0-9_ ,=:\n]{0,})\)--\*/'
 # regex for matching class and function names
 _cre_cfname = '([A-Za-z0-9_]{1,})'
 # regex for matching function return values
@@ -397,6 +397,11 @@ _simpletypes = {
     'void' : ['void', ''],
     'void*' : ['void*', 'NULL'],
     'int' : ['int', '0'],
+    'unsigned int' : ['unsigned int', '0'],
+    'int8' : ['int8', '0'],
+    'uint8' : ['uint8', '0'],
+    'int16' : ['int16', '0'],
+    'uint16' : ['uint16', '0'],
     'int32' : ['int32', '0'],
     'uint32' : ['uint32', '0'],
     'int64' : ['int64', '0'],

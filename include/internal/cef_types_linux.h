@@ -34,6 +34,7 @@
 
 #include "include/base/cef_build.h"
 
+#include "base/event_types.h"
 #if defined(OS_LINUX)
 
 typedef union _XEvent XEvent;
@@ -43,8 +44,13 @@ typedef struct _XDisplay XDisplay;
 #include "include/internal/cef_string.h"
 
 // Handle types.
+#if defined(USE_X11)
 #define cef_cursor_handle_t unsigned long
-#define cef_event_handle_t XEvent*
+#else
+#define cef_cursor_handle_t void*
+#endif
+
+#define cef_event_handle_t base::NativeEvent
 #define cef_window_handle_t unsigned long
 
 #define kNullCursorHandle 0
@@ -83,6 +89,11 @@ typedef struct _cef_window_info_t {
   // Pointer for the parent window.
   ///
   cef_window_handle_t parent_window;
+
+  ///
+  // Z-Index of the window
+  ///
+  int z_index;
 
   ///
   // Set to true (1) to create the browser using windowless (off-screen)
