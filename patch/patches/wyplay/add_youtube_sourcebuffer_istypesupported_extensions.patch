@@ -1,0 +1,97 @@
+--- third_party/WebKit/Source/modules/mediasource/MediaSource.cpp	2017-12-13 13:50:53.816021847 +0000
++++ third_party/WebKit/Source/modules/mediasource/MediaSource.cpp	2017-12-13 13:54:44.062050747 +0000
+@@ -228,6 +228,82 @@
+     return false;
+ }
+ 
++static bool checkYoutubeExtensions(ContentType& contentType) {
++    String widthStr = contentType.parameter("width");
++    String heightStr = contentType.parameter("height");
++    String framerateStr = contentType.parameter("framerate");
++    String bitrateStr = contentType.parameter("bitrate");
++    String channelsStr = contentType.parameter("channels");
++    String cryptoblockformat  = contentType.parameter("cryptoblockformat");
++    bool ok = true;
++
++    if (!widthStr.isEmpty() && heightStr.isEmpty()) {
++        WTF_LOG(Media, "MediaSource::isTypeSupported(%s) -> false (invalid resolution)", contentType.type().ascii().data());
++        return false;
++    } else if (widthStr.isEmpty() && !heightStr.isEmpty()) {
++       WTF_LOG(Media, "MediaSource::isTypeSupported(%s) -> false (invalid resolution)", contentType.type().ascii().data());
++       return false;
++    } else if (!widthStr.isEmpty() && !heightStr.isEmpty()) {
++        ok = true;
++        unsigned width = widthStr.toUIntStrict(&ok);
++        if (!ok) {
++            WTF_LOG(Media, "MediaSource::isTypeSupported(%s) -> false (invalid width)", contentType.type().ascii().data());
++            return false;
++        }
++
++        ok = true;
++        unsigned height = heightStr.toUIntStrict(&ok);
++        if (!ok) {
++            WTF_LOG(Media, "MediaSource::isTypeSupported(%s) -> false (invalid height)", contentType.type().ascii().data());
++            return false;
++        }
++
++        // We have absolutely no idea what is considered good, youtube does not give any explanation.
++        // Therefore reject only if it is bigger than 8k, that should pass the test.
++        if (width > 7680 || height > 4320) {
++            WTF_LOG(Media, "MediaSource::isTypeSupported(%s) -> false (invalid resolution)", contentType.type().ascii().data());
++            return false;
++        }
++    }
++
++    if (!framerateStr.isEmpty()) {
++        ok = true;
++        unsigned framerate = framerateStr.toFloat(&ok);
++
++        if (!ok || framerate > 120) {
++            WTF_LOG(Media, "MediaSource::isTypeSupported(%s) -> false (invalid framerate)", contentType.type().ascii().data());
++            return false;
++        }
++    }
++
++    if (!bitrateStr.isEmpty()) {
++        ok = true;
++        unsigned bitrate = bitrateStr.toFloat(&ok);
++
++        if (!ok || bitrate > 1000000000) {
++            WTF_LOG(Media, "MediaSource::isTypeSupported(%s) -> false (invalid bitrate)", contentType.type().ascii().data());
++            return false;
++        }
++    }
++
++    if (!channelsStr.isEmpty()) {
++        ok = true;
++        unsigned channels = channelsStr.toUIntStrict(&ok);
++
++        if (!ok || channels > 32) {
++            WTF_LOG(Media, "MediaSource::isTypeSupported(%s) -> false (invalid channels)", contentType.type().ascii().data());
++            return false;
++        }
++    }
++
++    if (!cryptoblockformat.isEmpty() && cryptoblockformat != "subsample") {
++        WTF_LOG(Media, "MediaSource::isTypeSupported(%s) -> false (invalid cryptoblockformat)", contentType.type().ascii().data());
++        return false;
++    }
++
++    return true;
++}
++
+ bool MediaSource::isTypeSupported(const String& type)
+ {
+     // Section 2.2 isTypeSupported() method steps.
+@@ -254,6 +320,10 @@
+         return false;
+     }
+ 
++    // In youtube requirements, we need to check new non standard parameters in the string
++    if (!checkYoutubeExtensions(contentType))
++        return false;
++
+     // 3. If type contains a media type or media subtype that the MediaSource does not support, then return false.
+     // 4. If type contains at a codec that the MediaSource does not support, then return false.
+     // 5. If the MediaSource does not support the specified combination of media type, media subtype, and codecs then return false.
+
