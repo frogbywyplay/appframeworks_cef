@@ -1,13 +1,12 @@
---- media/filters/stream_parser_factory.cc	2017-10-31 09:49:29.131671153 +0000
-+++ media/filters/stream_parser_factory.cc	2017-10-31 09:51:00.679101856 +0000
-@@ -333,40 +333,16 @@
+--- media/filters/stream_parser_factory.cc	2017-12-07 11:10:34.119804824 +0000
++++ media/filters/stream_parser_factory.cc	2017-12-07 11:13:08.702872653 +0000
+@@ -333,38 +333,16 @@
      std::vector<CodecInfo::HistogramTag>* video_codecs) {
    switch (codec_info->type) {
      case CodecInfo::AUDIO:
--      if (codec_info->tag == CodecInfo::HISTOGRAM_OPUS)
 +      if (codec_info->tag == CodecInfo::HISTOGRAM_OPUS &&
 +          !media::PlatformHasOpusSupport())
-         return false;
++        return false;
        if (audio_codecs)
          audio_codecs->push_back(codec_info->tag);
        return true;
