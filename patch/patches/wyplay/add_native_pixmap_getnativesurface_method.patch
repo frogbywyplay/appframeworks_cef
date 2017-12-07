@@ -1,0 +1,12 @@
+--- ui/ozone/public/native_pixmap.h	2017-10-05 15:13:48.147429518 +0000
++++ ui/ozone/public/native_pixmap.h	2017-09-22 10:39:28.586826271 +0000
+@@ -26,6 +26,7 @@
+   NativePixmap() {}
+ 
+   virtual void* /* EGLClientBuffer */ GetEGLClientBuffer() const = 0;
++  virtual void* GetNativeSurface() const = 0;
+   virtual int GetDmaBufFd() const = 0;
+   virtual int GetDmaBufPitch() const = 0;
+   virtual gfx::BufferFormat GetBufferFormat() const = 0;
+ 
+
