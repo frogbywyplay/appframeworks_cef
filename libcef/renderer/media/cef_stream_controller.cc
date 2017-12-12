@@ -51,7 +51,11 @@ bool CefStreamController::SHMBuffer::Map() {
 }
 
 void CefStreamController::SHMBuffer::Unmap() {
-  shm_->Unmap();
+  shm_->Map(size_);
+}
+
+size_t CefStreamController::SHMBuffer::Size() {
+  return size_;
 }
 
 CefStreamController::CefStreamController(media::DemuxerStream* stream,
@@ -63,16 +67,16 @@ CefStreamController::CefStreamController(media::DemuxerStream* stream,
     decryptor_(NULL),
     is_encrypted_(false),
     max_frame_count_(max_frame_count),
+    start_time_(base::TimeDelta::FromMilliseconds(0)),
     next_bitstream_buffer_id_(0),
     client_(client),
-    thread_safe_sender_(thread_safe_sender),
-    weak_this_factory_(this) {
+    thread_safe_sender_(thread_safe_sender) {
 
   read_cb_ = media::BindToCurrentLoop(
-    base::Bind(&CefStreamController::OnRead, weak_this_factory_.GetWeakPtr()));
+    base::Bind(&CefStreamController::OnRead, this));
 
   decrypt_cb_ = media::BindToCurrentLoop(
-    base::Bind(&CefStreamController::OnDecrypt, weak_this_factory_.GetWeakPtr()));
+    base::Bind(&CefStreamController::OnDecrypt, this));
 
   stream_->EnableBitstreamConverter();
 
@@ -90,6 +94,8 @@ CefStreamController::CefStreamController(media::DemuxerStream* stream,
 
 CefStreamController::~CefStreamController() {
   Abort();
+  read_cb_.Reset();
+  decrypt_cb_.Reset();
 }
 
 void CefStreamController::SetDecryptor(media::Decryptor* decryptor) {
@@ -97,7 +103,7 @@ void CefStreamController::SetDecryptor(media::Decryptor* decryptor) {
 
   decryptor_->RegisterNewKeyCB(
     DemuxerTypeToDecryptorType(stream_->type()),
-    media::BindToCurrentLoop(base::Bind(&CefStreamController::OnKeyAdded, weak_this_factory_.GetWeakPtr()))
+    media::BindToCurrentLoop(base::Bind(&CefStreamController::OnKeyAdded, this))
     );
 }
 
@@ -114,6 +120,9 @@ void CefStreamController::Feed() {
 
 void CefStreamController::Stop() {
   state_ = kStopped;
+
+  while (pending_pts_.size() > 0)
+    pending_pts_.pop();
 }
 
 void CefStreamController::Abort() {
@@ -121,17 +130,26 @@ void CefStreamController::Abort() {
     decryptor_->CancelDecrypt(DemuxerTypeToDecryptorType(stream_->type()));
 
   state_ = kStopped;
+
+  while (pending_pts_.size() > 0)
+    pending_pts_.pop();
 }
 
 void CefStreamController::OnPTSUpdate(int64_t pts) {
-  while (pending_pts_.size() > 0 && pending_pts_.front() <= pts)
+  size_t count = 0;
+
+  while (pending_pts_.size() > 0 && pending_pts_.front() <= pts) {
     pending_pts_.pop();
+    count++;
+  }
 
   if (pending_pts_.size() < max_frame_count_ && state_ == kBufferFull) {
     state_ = kReady;
-
     Read();
   }
+
+  if (count > 0)
+    client_->AddDecodedFrames(count);
 }
 
 void CefStreamController::ReleaseBuffer(uint32_t id) {
@@ -139,6 +157,7 @@ void CefStreamController::ReleaseBuffer(uint32_t id) {
     shared_buffers_.find(id);
 
   if (it != shared_buffers_.end()) {
+    client_->AddDecodedBytes(it->second->Size());
     shared_buffers_.erase(it);
   }
 }
@@ -154,8 +173,9 @@ void CefStreamController::Read() {
     state_ = kReading;
 
     if (pending_buffer_.get()) {
-      OnRead(media::DemuxerStream::kOk, pending_buffer_);
+      scoped_refptr<media::DecoderBuffer> buffer = pending_buffer_;
       pending_buffer_ = NULL;
+      OnRead(media::DemuxerStream::kOk, buffer);
     } else {
       stream_->Read(read_cb_);
     }
@@ -167,10 +187,8 @@ void CefStreamController::OnRead(media::DemuxerStream::Status status,
   if (state_ != kReading)
     return;
 
-  state_ = kReady;
-
   if (status == media::DemuxerStream::kOk) {
-    if (buffer->end_of_stream())
+    if (buffer->end_of_stream() && pending_pts_.size() > 0)
       client_->OnLastPTS(pending_pts_.back());
     else if (is_encrypted_)
       Decrypt(buffer);
@@ -178,7 +196,7 @@ void CefStreamController::OnRead(media::DemuxerStream::Status status,
       SendBuffer(buffer);
   } else if (status == media::DemuxerStream::kConfigChanged) {
     ConfigChanged();
-  } else {
+  } else if (status != media::DemuxerStream::kAborted) {
     client_->OnError();
     Stop();
   }
@@ -197,8 +215,6 @@ void CefStreamController::Decrypt(const scoped_refptr<media::DecoderBuffer>& buf
 
 void CefStreamController::OnDecrypt(media::Decryptor::Status status,
 				    const scoped_refptr<media::DecoderBuffer>& buffer) {
-  state_ = kReady;
-
   if (status == media::Decryptor::kSuccess && buffer.get() != NULL) {
     SendBuffer(buffer);
   } else if (status == media::Decryptor::kNoKey) {
@@ -218,6 +234,9 @@ void CefStreamController::SendBuffer(const scoped_refptr<media::DecoderBuffer>& 
   size_t size;
   SHMBuffer *shm_buffer = new SHMBuffer();
   int64_t pts = (buffer->timestamp() - start_time_).InMilliseconds();
+
+  if (state_ != kReading)
+    return;
 
   size = buffer->data_size();
 
@@ -240,6 +259,7 @@ void CefStreamController::SendBuffer(const scoped_refptr<media::DecoderBuffer>& 
   shm_buffer->Unmap();
 
   if (!base::SharedMemory::IsHandleValid(handle)) {
+    LOG(ERROR) << "Invalid shared buffer handle";
     client_->OnError();
     Stop();
     return;

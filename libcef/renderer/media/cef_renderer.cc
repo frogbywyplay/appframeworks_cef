@@ -38,7 +38,7 @@ CefMediaRenderer::CefMediaRenderer(
     initial_video_hole_created_(false),
     start_time_(media::kNoTimestamp()),
     current_time_(media::kNoTimestamp()),
-    media_gpu_proxy_(this, media_task_runner),
+    media_gpu_proxy_(new CefMediaGpuProxy(this, media_task_runner)),
     thread_safe_sender_(content::ChildThreadImpl::current()->thread_safe_sender()),
     weak_factory_(this)
 {
@@ -88,7 +88,7 @@ void CefMediaRenderer::SetCdm(media::CdmContext* cdm_context,
   if (!decryptor_)
     goto err;
 
-  media_gpu_proxy_.SetDecryptor(decryptor_);
+  media_gpu_proxy_->SetDecryptor(decryptor_);
   cdm_attached_cb.Run(true);
   return;
 
@@ -100,8 +100,20 @@ void CefMediaRenderer::SetCdm(media::CdmContext* cdm_context,
 void CefMediaRenderer::Flush(const base::Closure& flush_cb)
 {
   DCHECK(media_task_runner_->BelongsToCurrentThread());
-  media_gpu_proxy_.Flush();
+
+  if (state_ != PLAYING)
+    return;
+
+  if (!paused_) {
+    paused_ = true;
+    media_gpu_proxy_->Pause();
+  }
+
+  media_gpu_proxy_->Reset();
+  flush_cb.Run();
+
   state_ = FLUSHING;
+  flush_cb_ = flush_cb;
 }
 
 // Starts rendering from |time|.
@@ -109,30 +121,37 @@ void CefMediaRenderer::StartPlayingFrom(base::TimeDelta time)
 {
   DCHECK(media_task_runner_->BelongsToCurrentThread());
 
-  if (state_ == INITIALIZED || state_ == STOPPED)
-    media_gpu_proxy_.Play();
-  else if (state_ == PLAYING)
-    media_gpu_proxy_.Reset();
-  else if (state_ == FLUSHING)
-    media_task_runner_->PostTask(
-      FROM_HERE,
-      base::Bind(&CefMediaRenderer::SendHaveEnough, weak_this_)
-      );
-  else
+  if (state_ != INITIALIZED && state_ != STOPPED &&
+      state_ != PLAYING && state_ != FLUSHING)
     return;
 
-  state_ = PLAYING;
   start_time_ = time;
   current_time_ = time;
   last_pts_ = -1;
-  if (!initial_video_hole_created_)
-  {
+
+  switch (state_) {
+    case INITIALIZED: case STOPPED:
+      media_gpu_proxy_->Play();
+      break;
+    case PLAYING:
+      media_gpu_proxy_->Reset();
+      break;
+    case FLUSHING:
+      break;
+    default:
+      break;
+  }
+
+  media_gpu_proxy_->Start(start_time_);
+  media_gpu_proxy_->Feed();
+
+  state_ = PLAYING;
+
+  if (!initial_video_hole_created_) {
     initial_video_hole_created_ = true;
     video_renderer_sink_->PaintSingleFrame(
       media::VideoFrame::CreateHoleFrame(gfx::Size()));
   }
-
-  media_gpu_proxy_.Start(start_time_);
 }
 
 // Updates the current playback rate. The default playback rate should be 1.
@@ -147,17 +166,17 @@ void CefMediaRenderer::SetPlaybackRate(double playback_rate)
     if (!paused_)
     {
       paused_ = true;
-      media_gpu_proxy_.Pause();
+      media_gpu_proxy_->Pause();
     }
     return;
   }
   if (paused_)
   {
     paused_ = false;
-    media_gpu_proxy_.Resume();
+    media_gpu_proxy_->Resume();
   }
   if (rate_ != playback_rate)
-    media_gpu_proxy_.SetPlaybackRate(playback_rate);
+    media_gpu_proxy_->SetPlaybackRate(playback_rate);
   rate_ = playback_rate;
 }
 
@@ -171,7 +190,7 @@ void CefMediaRenderer::SetVolume(float volume)
   if (volume != volume_)
   {
     volume_ = volume;
-    media_gpu_proxy_.SetVolume(volume * 100);
+    media_gpu_proxy_->SetVolume(volume * 100);
   }
 }
 
@@ -184,13 +203,13 @@ base::TimeDelta CefMediaRenderer::GetMediaTime()
 // Returns whether |this| renders audio.
 bool CefMediaRenderer::HasAudio()
 {
-  return media_gpu_proxy_.HasAudio();
+  return media_gpu_proxy_->HasAudio();
 }
 
 // Returns whether |this| renders video.
 bool CefMediaRenderer::HasVideo()
 {
-  return media_gpu_proxy_.HasVideo();
+  return media_gpu_proxy_->HasVideo();
 }
 
 // Signal the position and size of the video surface on screen
@@ -207,7 +226,7 @@ void CefMediaRenderer::UpdateVideoSurface(int x, int y, int width, int height)
     y_ = y;
     width_ = width;
     height_ = height;
-    media_gpu_proxy_.SetVideoPlan(x, y, width, height, display_info.width,
+    media_gpu_proxy_->SetVideoPlan(x, y, width, height, display_info.width,
 				  display_info.height);
   }
 }
@@ -219,22 +238,8 @@ void CefMediaRenderer::OnFlushed()
     flush_cb_.Run();
     flush_cb_.Reset();
   }
-}
 
-void CefMediaRenderer::OnStatistics(media::DemuxerStream::Type type, int size)
-{
-  if (type == media::DemuxerStream::VIDEO)
-  {
-    stats_.video_bytes_decoded += size;
-    stats_.video_frames_decoded++;
-  }
-  else if (type == media::DemuxerStream::AUDIO)
-  {
-    stats_.audio_bytes_decoded += size;
-  }
-
-  if (client_)
-    client_->OnStatisticsUpdate(stats_);
+  media_gpu_proxy_->Reset();
 }
 
 void CefMediaRenderer::OnEndOfStream()
@@ -251,7 +256,6 @@ void CefMediaRenderer::OnResolutionChanged(int width, int height)
   gfx::Size new_size(width, height);
 
   if (video_renderer_sink_ && use_video_hole_) {
-    LOG(INFO) << "Drawing video hole";
     video_renderer_sink_->PaintSingleFrame(
       media::VideoFrame::CreateHoleFrame(new_size));
   }
@@ -264,6 +268,12 @@ void CefMediaRenderer::OnResolutionChanged(int width, int height)
 
 void CefMediaRenderer::OnPTSUpdate(int64_t pts)
 {
+  int64_t current_pts = current_time_.InMilliseconds();
+
+  if (start_time_.InMilliseconds() > 0 && pts > current_pts) {
+    return;
+  }
+
   current_time_ = start_time_ + base::TimeDelta::FromMilliseconds(pts);
 
   if (last_pts_ > 0 && last_pts_ <= pts)
@@ -272,10 +282,12 @@ void CefMediaRenderer::OnPTSUpdate(int64_t pts)
 
 void CefMediaRenderer::OnHaveEnough()
 {
-  media_task_runner_->PostTask(
-    FROM_HERE,
-    base::Bind(&CefMediaRenderer::SendHaveEnough, weak_this_)
-    );
+  if (state_ == PLAYING) {
+    media_task_runner_->PostTask(
+      FROM_HERE,
+      base::Bind(&CefMediaRenderer::SendHaveEnough, weak_this_)
+      );
+  }
 }
 
 void CefMediaRenderer::OnLastPTS(int64_t pts)
@@ -298,8 +310,39 @@ void CefMediaRenderer::OnMediaGpuProxyError(CefMediaGpuProxy::Client::Error erro
     client_->OnError(media::PipelineStatus::PIPELINE_ERROR_DECODE);
 }
 
-void CefMediaRenderer::OnNeedKey() {
+void CefMediaRenderer::OnNeedKey()
+{
   client_->OnWaitingForDecryptionKey();
+}
+
+void CefMediaRenderer::AddVideoDecodedBytes(size_t count)
+{
+  media::PipelineStatistics stats;
+
+  stats.video_bytes_decoded = count;
+
+  if (client_)
+    client_->OnStatisticsUpdate(stats);
+}
+
+void CefMediaRenderer::AddVideoDecodedFrames(size_t count)
+{
+  media::PipelineStatistics stats;
+
+  stats.video_frames_decoded = count;
+
+  if (client_)
+    client_->OnStatisticsUpdate(stats);
+}
+
+void CefMediaRenderer::AddAudioDecodedBytes(size_t count)
+{
+  media::PipelineStatistics stats;
+
+  stats.audio_bytes_decoded = count;
+
+  if (client_)
+    client_->OnStatisticsUpdate(stats);
 }
 
 // Private methods
@@ -308,14 +351,14 @@ void CefMediaRenderer::InitializeTask(media::DemuxerStream* video_stream,
 {
   DCHECK(media_task_runner_->BelongsToCurrentThread());
 
-  if (!media_gpu_proxy_.InitializeRenderer(video_stream, audio_stream,
+  if (!media_gpu_proxy_->InitializeRenderer(video_stream, audio_stream,
 					   thread_safe_sender_, use_video_hole_)) {
     init_cb_.Run(media::PipelineStatus::PIPELINE_ERROR_INITIALIZATION_FAILED);
     return;
   }
 
   if (decryptor_)
-    media_gpu_proxy_.SetDecryptor(decryptor_);
+    media_gpu_proxy_->SetDecryptor(decryptor_);
 
   state_ = INITIALIZED;
   init_cb_.Run(media::PipelineStatus::PIPELINE_OK);
@@ -324,15 +367,15 @@ void CefMediaRenderer::InitializeTask(media::DemuxerStream* video_stream,
 void CefMediaRenderer::Cleanup()
 {
   if (state_ != STOPPED)
-    media_gpu_proxy_.Stop();
-  media_gpu_proxy_.CleanupRenderer();
+    media_gpu_proxy_->Stop();
+  media_gpu_proxy_->CleanupRenderer();
   state_ = UNDEFINED;
   decryptor_ = NULL;
 }
 
 void CefMediaRenderer::OnStop()
 {
-  media_gpu_proxy_.Stop();
+  media_gpu_proxy_->Stop();
 }
 
 void CefMediaRenderer::SendHaveEnough()

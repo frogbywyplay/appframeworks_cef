@@ -3,6 +3,7 @@
 
 #include "base/macros.h"
 #include "base/time/time.h"
+#include "base/memory/ref_counted.h"
 
 #include "media/base/demuxer_stream.h"
 #include "media/base/video_frame.h"
@@ -20,8 +21,9 @@
 #include "libcef/renderer/media/gpu/cef_media_messages.h"
 
 class CefMediaGpuProxy :
-  public IPC::Sender,
-  public IPC::Listener {
+    public IPC::Sender,
+    public IPC::Listener,
+    public base::RefCountedThreadSafe<CefMediaGpuProxy> {
 
   public:
 
@@ -35,7 +37,6 @@ class CefMediaGpuProxy :
 
 	virtual void OnMediaGpuProxyError(Error error) = 0;
 	virtual void OnFlushed() = 0;
-	virtual void OnStatistics(media::DemuxerStream::Type type, int size) = 0;
 	virtual void OnEndOfStream() = 0;
 	virtual void OnResolutionChanged(int width, int height) = 0;
 	virtual void OnHaveEnough() = 0;
@@ -43,11 +44,13 @@ class CefMediaGpuProxy :
 	virtual void OnPTSUpdate(int64_t pts) = 0;
 	virtual void OnFrameCaptured(const scoped_refptr<media::VideoFrame>& frame) = 0;
 	virtual void OnNeedKey() = 0;
+	virtual void AddVideoDecodedBytes(size_t count) = 0;
+	virtual void AddVideoDecodedFrames(size_t count) = 0;
+	virtual void AddAudioDecodedBytes(size_t count) = 0;
     };
 
     CefMediaGpuProxy(Client *client,
 		     const scoped_refptr<base::SingleThreadTaskRunner>& task_runner);
-    ~CefMediaGpuProxy();
 
     static bool PlatformHasVP9Support();
     static bool PlatformHasOpusSupport();
@@ -66,6 +69,7 @@ class CefMediaGpuProxy :
     bool HasVideo();
 
     void Start(base::TimeDelta start_time);
+    void Feed();
     void Play();
     void Pause();
     void Resume();
@@ -86,8 +90,13 @@ class CefMediaGpuProxy :
     void OnNeedKey();
     base::SharedMemoryHandle OnShareToGpuProcess(base::SharedMemoryHandle handle);
     void VideoConfigurationChanged(gfx::Size size);
+    void AddVideoDecodedBytes(size_t count);
+    void AddVideoDecodedFrames(size_t count);
+    void AddAudioDecodedBytes(size_t count);
 
   private:
+    friend class base::RefCountedThreadSafe<CefMediaGpuProxy>;
+    ~CefMediaGpuProxy();
 
     // IPC Handlers
     bool OnMessageReceived(const IPC::Message& msg);
@@ -121,12 +130,13 @@ class CefMediaGpuProxy :
     scoped_refptr<base::SingleThreadTaskRunner> task_runner_;
     gpu::CommandBufferProxyImpl* command_buffer_proxy_;
     base::TimeDelta start_time_;
+    bool initialized_;
 
-    std::unique_ptr<CefStreamController> video_stream_;
-    std::unique_ptr<CefStreamController> audio_stream_;
+    scoped_refptr<CefStreamController> video_stream_;
+    scoped_refptr<CefStreamController> audio_stream_;
 
-    base::WeakPtrFactory<CefMediaGpuProxy> weak_ptr_factory_;
-    base::WeakPtr<CefMediaGpuProxy> weak_ptr_;
+    base::WeakPtrFactory<CefMediaGpuProxy> weak_factory_;
+
 };
 
 #endif /* !CEF_LIBCEF_RENDERER_MEDIA_CEF_MEDIA_GPU_PROXY.H */

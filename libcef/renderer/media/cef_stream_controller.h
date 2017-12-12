@@ -12,10 +12,12 @@
 
 #include <queue>
 
-class CefStreamController {
+class CefStreamController :
+    public base::RefCountedThreadSafe<CefStreamController> {
   public:
 
-    class Client {
+    class Client :
+      public base::RefCountedThreadSafe<Client> {
       public :
 
 	virtual void OnLastPTS(int64_t pts) = 0;
@@ -24,14 +26,19 @@ class CefStreamController {
 	virtual base::SharedMemoryHandle ShareBufferToGpuProcess(
 	  base::SharedMemoryHandle handle) = 0;
         virtual void SendBuffer(media::BitstreamBuffer& buffer) = 0;
-	virtual void VideoConfigurationChanged(gfx::Size size) = 0;
+	virtual void VideoConfigurationChanged(gfx::Size size) { }
+	virtual void AddDecodedBytes(size_t count) = 0;
+	virtual void AddDecodedFrames(size_t count) { }
+
+      protected :
+	friend class base::RefCountedThreadSafe<Client>;
+	virtual ~Client() {}
     };
 
     CefStreamController(media::DemuxerStream* stream,
 			size_t max_frame_count,
 			content::ThreadSafeSender* thread_safe_sender,
 		        Client* client);
-    ~CefStreamController();
 
     void SetDecryptor(media::Decryptor* decryptor);
     void SetStartTime(base::TimeDelta start_time);
@@ -42,6 +49,8 @@ class CefStreamController {
     void ReleaseBuffer(uint32_t id);
 
   private:
+    friend class base::RefCountedThreadSafe<CefStreamController>;
+    ~CefStreamController();
 
     class SHMBuffer {
       public:
@@ -52,6 +61,7 @@ class CefStreamController {
 	base::SharedMemory* shm();
 	bool Map();
 	void Unmap();
+	size_t Size();
 
       private:
 	std::unique_ptr<base::SharedMemory> shm_;
@@ -94,11 +104,9 @@ class CefStreamController {
 
     int32_t next_bitstream_buffer_id_;
 
-    Client* client_;
+    scoped_refptr<Client> client_;
 
     content::ThreadSafeSender* thread_safe_sender_;
-
-    base::WeakPtrFactory<CefStreamController> weak_this_factory_;
 };
 
 #endif /* !CEF_LIBCEF_RENDERER_MEDIA_CEF_STREAM_CONTROLLER.H */

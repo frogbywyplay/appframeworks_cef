@@ -73,6 +73,7 @@ CefGpuMediaService::CefGpuMediaService(gpu::GpuChannelManager* channel_manager)
 }
 
 CefGpuMediaService::~CefGpuMediaService() {
+  DestroyAllChannels();
 }
 
 void CefGpuMediaService::AddChannel(int client_id) {
@@ -209,6 +210,8 @@ bool CefGpuMediaService::ChannelListener::OnMessageReceived(const IPC::Message& 
     IPC_MESSAGE_HANDLER(CefGpuMediaMsg_Stop,
 			CefGpuMediaService::ChannelListener::OnStop)
     IPC_MESSAGE_HANDLER(CefGpuMediaMsg_Flush,
+			CefGpuMediaService::ChannelListener::OnFlush)
+    IPC_MESSAGE_HANDLER(CefGpuMediaMsg_Reset,
 			CefGpuMediaService::ChannelListener::OnReset)
     IPC_MESSAGE_HANDLER(CefGpuMediaMsg_SetPlaybackRate,
 			CefGpuMediaService::ChannelListener::OnSetPlaybackRate)

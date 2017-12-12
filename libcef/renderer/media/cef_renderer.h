@@ -76,7 +76,6 @@ class CefMediaRenderer :
 
     // CefMediaGpuProxy::Client impl
     virtual void OnFlushed() override;
-    virtual void OnStatistics(media::DemuxerStream::Type type, int size) override;
     virtual void OnEndOfStream() override;
     virtual void OnResolutionChanged(int width, int height) override;
     virtual void OnHaveEnough() override;
@@ -85,6 +84,9 @@ class CefMediaRenderer :
     virtual void OnFrameCaptured(const scoped_refptr<media::VideoFrame>& frame) override;
     virtual void OnMediaGpuProxyError(CefMediaGpuProxy::Client::Error error) override;
     virtual void OnNeedKey() override;
+    virtual void AddVideoDecodedBytes(size_t count) override;
+    virtual void AddVideoDecodedFrames(size_t count) override;
+    virtual void AddAudioDecodedBytes(size_t count) override;
 
   private:
 
@@ -129,9 +131,8 @@ class CefMediaRenderer :
 
     base::TimeDelta           start_time_;
     base::TimeDelta           current_time_;
-    media::PipelineStatistics stats_;
 
-    CefMediaGpuProxy media_gpu_proxy_;
+    scoped_refptr<CefMediaGpuProxy> media_gpu_proxy_;
 
     content::ThreadSafeSender* thread_safe_sender_;
 

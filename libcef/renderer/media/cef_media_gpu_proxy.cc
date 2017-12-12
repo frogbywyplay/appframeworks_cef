@@ -16,83 +16,96 @@
 namespace {
 
   class VideoStreamControllerClient :
-      public CefStreamController::Client {
+      public CefStreamController::Client,
+      public base::RefCountedThreadSafe<VideoStreamControllerClient> {
     public :
 
-      VideoStreamControllerClient(CefMediaGpuProxy *proxy)
+      VideoStreamControllerClient(scoped_refptr<CefMediaGpuProxy> proxy)
 	: proxy_(proxy) {
       }
 
-      ~VideoStreamControllerClient() {
-      }
-
-      void OnLastPTS(int64_t pts) {
+      virtual void OnLastPTS(int64_t pts) override {
 	proxy_->OnLastVideoPTS(pts);
       }
 
-      void OnNeedKey() {
+      virtual void OnNeedKey() override {
 	proxy_->OnNeedKey();
       }
 
-      void OnError() {
+      virtual void OnError() override {
 	proxy_->OnStreamError();
       }
 
-      base::SharedMemoryHandle ShareBufferToGpuProcess(
-	base::SharedMemoryHandle handle) {
+      virtual base::SharedMemoryHandle ShareBufferToGpuProcess(
+	base::SharedMemoryHandle handle) override {
 	return proxy_->OnShareToGpuProcess(handle);
       }
 
-      void SendBuffer(media::BitstreamBuffer& buffer) {
+      virtual void SendBuffer(media::BitstreamBuffer& buffer) override {
 	proxy_->SendVideoBuffer(buffer);
       }
 
-      void VideoConfigurationChanged(gfx::Size size) {
+      virtual void VideoConfigurationChanged(gfx::Size size) override {
 	proxy_->VideoConfigurationChanged(size);
       }
 
+      virtual void AddDecodedBytes(size_t count) override {
+	proxy_->AddVideoDecodedBytes(count);
+      }
+
+      virtual void AddDecodedFrames(size_t count) override {
+	proxy_->AddVideoDecodedFrames(count);
+      }
+
     private:
-      CefMediaGpuProxy *proxy_;
+      friend class base::RefCountedThreadSafe<VideoStreamControllerClient>;
+      virtual ~VideoStreamControllerClient() override {
+      }
+
+      scoped_refptr<CefMediaGpuProxy> proxy_;
 
   };
 
   class AudioStreamControllerClient :
-      public CefStreamController::Client {
+      public CefStreamController::Client,
+      public base::RefCountedThreadSafe<AudioStreamControllerClient> {
     public :
 
-      AudioStreamControllerClient(CefMediaGpuProxy *proxy)
+      AudioStreamControllerClient(scoped_refptr<CefMediaGpuProxy> proxy)
 	: proxy_(proxy) {
       }
 
-      ~AudioStreamControllerClient() {
-      }
-
-      void OnLastPTS(int64_t pts) {
+      virtual void OnLastPTS(int64_t pts) override {
 	proxy_->OnLastAudioPTS(pts);
       }
 
-      void OnNeedKey() {
+      virtual void OnNeedKey() override {
 	proxy_->OnNeedKey();
       }
 
-      void OnError() {
+      virtual void OnError() override {
 	proxy_->OnStreamError();
       }
 
-      base::SharedMemoryHandle ShareBufferToGpuProcess(
-	base::SharedMemoryHandle handle) {
+      virtual base::SharedMemoryHandle ShareBufferToGpuProcess(
+	base::SharedMemoryHandle handle) override {
 	return proxy_->OnShareToGpuProcess(handle);
       }
 
-      void SendBuffer(media::BitstreamBuffer& buffer) {
+      virtual void SendBuffer(media::BitstreamBuffer& buffer) override {
 	proxy_->SendAudioBuffer(buffer);
       }
 
-      void VideoConfigurationChanged(gfx::Size size) {
+      virtual void AddDecodedBytes(size_t count) override {
+	proxy_->AddVideoDecodedBytes(count);
       }
 
     private:
-      CefMediaGpuProxy *proxy_;
+      friend class base::RefCountedThreadSafe<AudioStreamControllerClient>;
+      virtual ~AudioStreamControllerClient() override {
+      }
+
+      scoped_refptr<CefMediaGpuProxy> proxy_;
 
   };
 
@@ -105,18 +118,22 @@ CefMediaGpuProxy::CefMediaGpuProxy(CefMediaGpuProxy::Client *client,
     command_buffer_proxy_(
       content::RenderThreadImpl::current()
         ->SharedMainThreadContextProvider()->GetCommandBufferProxy()),
-    weak_ptr_factory_(this),
-    weak_ptr_(weak_ptr_factory_.GetWeakPtr()) {
-  video_stream_.reset(NULL);
-  video_stream_.reset(NULL);
+    initialized_(false),
+    weak_factory_(this) {
+  video_stream_ = NULL;
+  video_stream_ = NULL;
 }
 
 CefMediaGpuProxy::~CefMediaGpuProxy() {
+  if (initialized_) {
+    command_buffer_proxy_->channel()->RemoveRoute(command_buffer_proxy_->route_id());
+  }
 }
 
 bool CefMediaGpuProxy::Send(IPC::Message *msg) {
   if (!command_buffer_proxy_->channel()->Send(msg)) {
-    client_->OnMediaGpuProxyError(CefMediaGpuProxy::Client::kIPCError);
+    if (client_)
+      client_->OnMediaGpuProxyError(CefMediaGpuProxy::Client::kIPCError);
     return false;
   }
   return true;
@@ -128,8 +145,6 @@ bool CefMediaGpuProxy::InitializeRenderer(media::DemuxerStream* video_stream,
 					  bool& use_video_hole) {
   CefGpuMediaMsg_Initialize_Params params;
   CefGpuMediaMsg_Initialize_Result result;
-
-  LOG(INFO) << "Initiazing renderer on host side";
 
   params.ipc_route_id = command_buffer_proxy_->route_id();
 
@@ -149,51 +164,47 @@ bool CefMediaGpuProxy::InitializeRenderer(media::DemuxerStream* video_stream,
   if (!command_buffer_proxy_->channel()->Send(
 	new CefGpuMediaMsg_Initialize(
 	  command_buffer_proxy_->route_id(), params, &result))) {
-    LOG(ERROR) << "Renderer initialization failed onf GPU side";
+    LOG(ERROR) << "Renderer initialization failed on GPU side";
     return false;
   }
 
   if (result.success) {
     if (video_stream) {
-      video_stream_.reset(
+      video_stream_ =
 	new CefStreamController(
 	  video_stream, result.max_video_frame_count, thread_safe_sender,
-	  new VideoStreamControllerClient(this)));
+	  new VideoStreamControllerClient(scoped_refptr<CefMediaGpuProxy>(this)));
     }
 
     if (audio_stream) {
-      audio_stream_.reset(
+      audio_stream_ =
 	new CefStreamController(
 	  audio_stream, result.max_audio_frame_count, thread_safe_sender,
-	  new AudioStreamControllerClient(this)));
+	  new AudioStreamControllerClient(scoped_refptr<CefMediaGpuProxy>(this)));
     }
 
-    command_buffer_proxy_->channel()->AddRoute(command_buffer_proxy_->route_id(), weak_ptr_);
+    command_buffer_proxy_->channel()->AddRoute(command_buffer_proxy_->route_id(), weak_factory_.GetWeakPtr());
     use_video_hole = result.use_video_hole;
   }
 
-  LOG(INFO) << "Renderer initialized :"
-	    << " success=" << (result.success ? "TRUE" : "FALSE")
-	    << " use_video_hole=" << (use_video_hole ? "TRUE" : "FALSE");
+  initialized_ = result.success;
 
   return result.success;
 }
 
 void CefMediaGpuProxy::CleanupRenderer() {
-  LOG(INFO) << "Cleaning renderer on host side";
-
   Send(new CefGpuMediaMsg_Cleanup(command_buffer_proxy_->route_id()));
 
   if (audio_stream_.get())
-    audio_stream_.reset(NULL);
+    audio_stream_ = NULL;
 
   if (video_stream_.get())
-    video_stream_.reset(NULL);
+    video_stream_ = NULL;
+
+  client_ = NULL;
 }
 
 void CefMediaGpuProxy::SetDecryptor(media::Decryptor* decryptor) {
-  LOG(INFO) << "Receiving decryptor";
-
   if (audio_stream_.get())
     audio_stream_->SetDecryptor(decryptor);
 
@@ -210,8 +221,6 @@ bool CefMediaGpuProxy::HasVideo() {
 }
 
 void CefMediaGpuProxy::Start(base::TimeDelta start_time) {
-  LOG(INFO) << "Start renderer (start_time=" << start_time.InMilliseconds() << ")";
-
   start_time_ = start_time;
 
   if (video_stream_.get())
@@ -221,12 +230,7 @@ void CefMediaGpuProxy::Start(base::TimeDelta start_time) {
     audio_stream_->SetStartTime(start_time);
 }
 
-
-void CefMediaGpuProxy::Play() {
-  LOG(INFO) << "Play";
-
-  Send(new CefGpuMediaMsg_Play(command_buffer_proxy_->route_id()));
-
+void CefMediaGpuProxy::Feed() {
   if (video_stream_.get())
     video_stream_->Feed();
 
@@ -234,19 +238,19 @@ void CefMediaGpuProxy::Play() {
     audio_stream_->Feed();
 }
 
+void CefMediaGpuProxy::Play() {
+  Send(new CefGpuMediaMsg_Play(command_buffer_proxy_->route_id()));
+}
+
 void CefMediaGpuProxy::Pause() {
-  LOG(INFO) << "Pause";
   Send(new CefGpuMediaMsg_Pause(command_buffer_proxy_->route_id()));
 }
 
 void CefMediaGpuProxy::Resume() {
-  LOG(INFO) << "Resume";
   Send(new CefGpuMediaMsg_Resume(command_buffer_proxy_->route_id()));
 }
 
 void CefMediaGpuProxy::Stop() {
-  LOG(INFO) << "Stop";
-
   Send(new CefGpuMediaMsg_Stop(command_buffer_proxy_->route_id()));
 
   if (video_stream_.get())
@@ -257,8 +261,6 @@ void CefMediaGpuProxy::Stop() {
 }
 
 void CefMediaGpuProxy::Flush() {
-  LOG(INFO) << "Flush";
-
   Send(new CefGpuMediaMsg_Flush(command_buffer_proxy_->route_id()));
 
   if (video_stream_.get())
@@ -269,8 +271,6 @@ void CefMediaGpuProxy::Flush() {
 }
 
 void CefMediaGpuProxy::Reset() {
-  LOG(INFO) << "Reset";
-
   Send(new CefGpuMediaMsg_Reset(command_buffer_proxy_->route_id()));
 
   if (video_stream_.get())
@@ -281,12 +281,10 @@ void CefMediaGpuProxy::Reset() {
 }
 
 void CefMediaGpuProxy::SetPlaybackRate(double rate) {
-  LOG(INFO) << "Set playback rate " << rate;
   Send(new CefGpuMediaMsg_SetPlaybackRate(command_buffer_proxy_->route_id(), rate));
 }
 
 void CefMediaGpuProxy::SetVolume(float volume) {
-  LOG(INFO) << "Set volume " << volume;
   Send(new CefGpuMediaMsg_SetVolume(command_buffer_proxy_->route_id(), volume));
 }
 
@@ -294,13 +292,6 @@ void CefMediaGpuProxy::SetVideoPlan(int x, int y, int width, int height,
 					int display_width, int display_height)
 {
   CefGpuMediaMsg_SetVideoPlan_Params params;
-
-  LOG(INFO) << "Set video plan x=" << x
-	    << " y=" << y
-	    << " width=" << width
-	    << " height=" << height
-	    << " display_width=" << display_width
-	    << " display_height=" << display_height;
 
   params.x = x;
   params.y = y;
@@ -324,22 +315,24 @@ void CefMediaGpuProxy::SendVideoBuffer(media::BitstreamBuffer& buffer) {
 void CefMediaGpuProxy::OnLastAudioPTS(int64_t pts) {
   task_runner_->PostTask(
     FROM_HERE,
-    base::Bind(&CefMediaGpuProxy::OnLastAudioPTSTask, weak_ptr_, pts));
+    base::Bind(&CefMediaGpuProxy::OnLastAudioPTSTask, this, pts));
 }
 
 void CefMediaGpuProxy::OnLastVideoPTS(int64_t pts) {
   task_runner_->PostTask(
     FROM_HERE,
-    base::Bind(&CefMediaGpuProxy::OnLastVideoPTSTask, weak_ptr_, pts));
+    base::Bind(&CefMediaGpuProxy::OnLastVideoPTSTask, this, pts));
 }
 
 void CefMediaGpuProxy::OnStreamError() {
   LOG(ERROR) << "Error in stream controller";
-  client_->OnMediaGpuProxyError(CefMediaGpuProxy::Client::kStreamError);
+  if (client_)
+    client_->OnMediaGpuProxyError(CefMediaGpuProxy::Client::kStreamError);
 }
 
 void CefMediaGpuProxy::OnNeedKey() {
-  client_->OnNeedKey();
+  if (client_)
+    client_->OnNeedKey();
 }
 
 base::SharedMemoryHandle CefMediaGpuProxy::OnShareToGpuProcess(
@@ -349,6 +342,21 @@ base::SharedMemoryHandle CefMediaGpuProxy::OnShareToGpuProcess(
 
 void CefMediaGpuProxy::VideoConfigurationChanged(gfx::Size new_size) {
   Send(new CefGpuMediaMsg_UpdateSize(command_buffer_proxy_->route_id(), new_size));
+}
+
+void CefMediaGpuProxy::AddVideoDecodedBytes(size_t count) {
+  if (client_)
+    client_->AddVideoDecodedBytes(count);
+}
+
+void CefMediaGpuProxy::AddVideoDecodedFrames(size_t count) {
+  if (client_)
+    client_->AddVideoDecodedFrames(count);
+}
+
+void CefMediaGpuProxy::AddAudioDecodedBytes(size_t count) {
+  if (client_)
+    client_->AddAudioDecodedBytes(count);
 }
 
 // IPC Handlers
@@ -384,55 +392,55 @@ bool CefMediaGpuProxy::OnMessageReceived(const IPC::Message& msg)
 void CefMediaGpuProxy::OnFlushed() {
   task_runner_->PostTask(
     FROM_HERE,
-    base::Bind(&CefMediaGpuProxy::OnFlushedTask, weak_ptr_));
+    base::Bind(&CefMediaGpuProxy::OnFlushedTask, this));
 }
 
 void CefMediaGpuProxy::OnEndOfStream() {
   task_runner_->PostTask(
     FROM_HERE,
-    base::Bind(&CefMediaGpuProxy::OnEndOfStreamTask, weak_ptr_));
+    base::Bind(&CefMediaGpuProxy::OnEndOfStreamTask, this));
 }
 
 void CefMediaGpuProxy::OnResolutionChanged(int width, int height) {
   task_runner_->PostTask(
     FROM_HERE,
-    base::Bind(&CefMediaGpuProxy::OnResolutionChangedTask, weak_ptr_, width, height));
+    base::Bind(&CefMediaGpuProxy::OnResolutionChangedTask, this, width, height));
 }
 
 void CefMediaGpuProxy::OnHaveEnough() {
   task_runner_->PostTask(
     FROM_HERE,
-    base::Bind(&CefMediaGpuProxy::OnHaveEnoughTask, weak_ptr_));
+    base::Bind(&CefMediaGpuProxy::OnHaveEnoughTask, this));
 }
 
 void CefMediaGpuProxy::OnAudioTimeUpdate(int64_t pts) {
   task_runner_->PostTask(
     FROM_HERE,
-    base::Bind(&CefMediaGpuProxy::UpdateAudioTimeTask, weak_ptr_, pts));
+    base::Bind(&CefMediaGpuProxy::UpdateAudioTimeTask, this, pts));
 }
 
 void CefMediaGpuProxy::OnVideoTimeUpdate(int64_t pts) {
   task_runner_->PostTask(
     FROM_HERE,
-    base::Bind(&CefMediaGpuProxy::UpdateVideoTimeTask, weak_ptr_, pts));
+    base::Bind(&CefMediaGpuProxy::UpdateVideoTimeTask, this, pts));
 }
 
 void CefMediaGpuProxy::OnFrameCaptured(CefGpuMediaMsg_Frame_Params params) {
   task_runner_->PostTask(
     FROM_HERE,
-    base::Bind(&CefMediaGpuProxy::OnFrameCapturedTask, weak_ptr_, params));
+    base::Bind(&CefMediaGpuProxy::OnFrameCapturedTask, this, params));
 }
 
 void CefMediaGpuProxy::OnReleaseVideoBuffer(int32_t id) {
   task_runner_->PostTask(
     FROM_HERE,
-    base::Bind(&CefMediaGpuProxy::ReleaseVideoBufferTask, weak_ptr_, id));
+    base::Bind(&CefMediaGpuProxy::ReleaseVideoBufferTask, this, id));
 }
 
 void CefMediaGpuProxy::OnReleaseAudioBuffer(int32_t id) {
   task_runner_->PostTask(
     FROM_HERE,
-    base::Bind(&CefMediaGpuProxy::ReleaseAudioBufferTask, weak_ptr_, id));
+    base::Bind(&CefMediaGpuProxy::ReleaseAudioBufferTask, this, id));
 }
 
 // Video frame release callback
@@ -442,14 +450,19 @@ void CefMediaGpuProxy::ReleaseMailbox(const uint32_t frame_id, const gpu::SyncTo
 
 // Media tasks
 void CefMediaGpuProxy::UpdateAudioTimeTask(int64_t pts) {
-  client_->OnPTSUpdate(pts);
-  if (audio_stream_)
+  if (client_)
+    client_->OnPTSUpdate(pts);
+
+  if (audio_stream_.get())
     audio_stream_->OnPTSUpdate(pts);
 }
 
 void CefMediaGpuProxy::UpdateVideoTimeTask(int64_t pts) {
-  client_->OnPTSUpdate(pts);
-  if (video_stream_)
+  // Audio PTS is the reference, use video PTS only when we have no audio
+  if (!audio_stream_.get() && client_)
+    client_->OnPTSUpdate(pts);
+
+  if (video_stream_.get())
     video_stream_->OnPTSUpdate(pts);
 }
 
@@ -464,38 +477,39 @@ void CefMediaGpuProxy::ReleaseAudioBufferTask(int32_t id) {
 }
 
 void CefMediaGpuProxy::OnLastAudioPTSTask(int64_t pts) {
-  LOG(INFO) << "Last audio pts " << pts;
-  client_->OnLastPTS(pts);
+  if (!video_stream_.get() && client_)
+    client_->OnLastPTS(pts);
 }
 
 void CefMediaGpuProxy::OnLastVideoPTSTask(int64_t pts) {
-  LOG(INFO) << "Last video pts " << pts;
-  client_->OnLastPTS(pts);
+  if (client_)
+    client_->OnLastPTS(pts);
 }
 
 void CefMediaGpuProxy::OnFlushedTask() {
-  LOG(ERROR) << "Renderer flushed";
-  client_->OnFlushed();
+  if (client_)
+    client_->OnFlushed();
 }
 
 void CefMediaGpuProxy::OnEndOfStreamTask() {
-  LOG(ERROR) << "Received end of stream";
-  client_->OnEndOfStream();
+  if (client_)
+    client_->OnEndOfStream();
 }
 
 void CefMediaGpuProxy::OnResolutionChangedTask(int width, int height) {
-  LOG(ERROR) << "Resolution changed width=" << width << " height=" << height;
-  client_->OnResolutionChanged(width, height);
+  if (client_)
+    client_->OnResolutionChanged(width, height);
 }
 
 void CefMediaGpuProxy::OnHaveEnoughTask() {
-  LOG(ERROR) << "Received have enough";
-  client_->OnHaveEnough();
+  if (client_)
+    client_->OnHaveEnough();
 }
 
 void CefMediaGpuProxy::OnFrameCapturedTask(CefGpuMediaMsg_Frame_Params params) {
   if (params.mailbox.IsZero()) {
-    client_->OnMediaGpuProxyError(CefMediaGpuProxy::Client::kRendererError);
+    if (client_)
+      client_->OnMediaGpuProxyError(CefMediaGpuProxy::Client::kRendererError);
     return;
   }
 
@@ -503,12 +517,13 @@ void CefMediaGpuProxy::OnFrameCapturedTask(CefGpuMediaMsg_Frame_Params params) {
     gpu::MailboxHolder(params.mailbox, gpu::SyncToken(), GL_TEXTURE_2D)
   };
 
-  client_->OnFrameCaptured(
-    media::VideoFrame::WrapNativeTextures(
-      media::VideoPixelFormat::PIXEL_FORMAT_ARGB, mailbox_holder,
-      base::Bind(&CefMediaGpuProxy::ReleaseMailbox, weak_ptr_, params.frame_id),
-      params.coded_size, params.visible_rect, params.natural_size,
-      base::TimeDelta::FromMilliseconds(params.pts) + start_time_));
+  if (client_)
+    client_->OnFrameCaptured(
+      media::VideoFrame::WrapNativeTextures(
+	media::VideoPixelFormat::PIXEL_FORMAT_ARGB, mailbox_holder,
+	base::Bind(&CefMediaGpuProxy::ReleaseMailbox, this, params.frame_id),
+	params.coded_size, params.visible_rect, params.natural_size,
+	base::TimeDelta::FromMilliseconds(params.pts) + start_time_));
 }
 
 bool CefMediaGpuProxy::PlatformHasVP9Support() {
@@ -524,7 +539,6 @@ bool CefMediaGpuProxy::PlatformHasVP9Support() {
       return false;
     }
 
-    LOG(INFO) << "VP9 delegate support: " << support;
     return support;
   }
 
@@ -545,7 +559,6 @@ bool CefMediaGpuProxy::PlatformHasOpusSupport() {
       return false;
     }
 
-    LOG(INFO) << "Opus delegate support:" << support;
     return support;
   }
 
