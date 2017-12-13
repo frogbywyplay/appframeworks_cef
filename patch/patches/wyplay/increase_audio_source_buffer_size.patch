@@ -1,0 +1,12 @@
+--- media/filters/source_buffer_platform_lowmem.cc	2017-12-13 13:24:41.693936298 +0000
++++ media/filters/source_buffer_platform_lowmem.cc	2017-12-13 13:24:47.525989699 +0000
+@@ -10,7 +10,7 @@
+ 
+ // 2MB: approximately 1 minute of 256Kbps content.
+ // 30MB: approximately 1 minute of 4Mbps content.
+-const size_t kSourceBufferAudioMemoryLimit = 2 * 1024 * 1024;
++const size_t kSourceBufferAudioMemoryLimit = 5 * 1024 * 1024;
+ const size_t kSourceBufferVideoMemoryLimit = 30 * 1024 * 1024;
+ 
+ }  // namespace media
+
