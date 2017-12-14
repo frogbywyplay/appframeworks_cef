@@ -94,33 +94,22 @@ static void AddPepperBasedWidevine(
     return;
   }
 
-  std::vector<std::string> codecs;
-  GetSupportedCodecsForPepperCdm(additional_param_names,
-                                 additional_param_values,
-                                 &codecs);
   SupportedCodecs supported_codecs = media::EME_CODEC_NONE;
 
-  // Audio codecs are always supported.
-  // TODO(sandersd): Distinguish these from those that are directly supported,
-  // as those may offer a higher level of protection.
   supported_codecs |= media::EME_CODEC_WEBM_OPUS;
   supported_codecs |= media::EME_CODEC_WEBM_VORBIS;
+
+  // TODO : Find a way to enable/disable some codecs if not supported
+  // by the platform.
+  supported_codecs |= media::EME_CODEC_WEBM_VP8;
+  supported_codecs |= media::EME_CODEC_WEBM_VP9;
+
 #if defined(USE_PROPRIETARY_CODECS)
   supported_codecs |= media::EME_CODEC_MP4_ALL;
-#endif  // defined(USE_PROPRIETARY_CODECS)
-
-  for (size_t i = 0; i < codecs.size(); ++i) {
-    if (codecs[i] == kCdmSupportedCodecVp8)
-      supported_codecs |= media::EME_CODEC_WEBM_VP8;
-    if (codecs[i] == kCdmSupportedCodecVp9)
-      supported_codecs |= media::EME_CODEC_WEBM_VP9;
-#if defined(USE_PROPRIETARY_CODECS)
 #if BUILDFLAG(ENABLE_MP4_VP9_DEMUXING)
-    if (codecs[i] == kCdmSupportedCodecVp9)
-      supported_codecs |= media::EME_CODEC_MP4_VP9;
+  supported_codecs |= media::EME_CODEC_MP4_VP9;
 #endif
 #endif  // defined(USE_PROPRIETARY_CODECS)
-  }
 
   concrete_key_systems->emplace_back(new cdm::WidevineKeySystemProperties(
       supported_codecs,

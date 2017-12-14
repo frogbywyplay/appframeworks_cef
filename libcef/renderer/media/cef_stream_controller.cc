@@ -235,7 +235,7 @@ void CefStreamController::SendBuffer(const scoped_refptr<media::DecoderBuffer>& 
   SHMBuffer *shm_buffer = new SHMBuffer();
   int64_t pts = (buffer->timestamp() - start_time_).InMilliseconds();
 
-  if (state_ != kReading)
+  if (state_ != kReading && state_ != kDecrypting)
     return;
 
   size = buffer->data_size();
