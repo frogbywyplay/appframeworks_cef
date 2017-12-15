@@ -259,9 +259,11 @@ void CefStreamController::SendBuffer(const scoped_refptr<media::DecoderBuffer>& 
   shm_buffer->Unmap();
 
   if (!base::SharedMemory::IsHandleValid(handle)) {
-    LOG(ERROR) << "Invalid shared buffer handle";
-    client_->OnError();
-    Stop();
+    // We did our best, keep going
+    LOG(WARNING) << "Invalid shared buffer handle";
+    delete shm_buffer;
+    state_ = kReady;
+    Read();
     return;
   }
 
