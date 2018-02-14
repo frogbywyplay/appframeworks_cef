@@ -1772,7 +1772,7 @@ diff --git media/media.gyp media/media.gyp
 index d3d1604..612a240 100644
 --- media/media.gyp
 +++ media/media.gyp
-@@ -1063,6 +1063,15 @@
+@@ -1062,6 +1062,15 @@
              'filters/ffmpeg_h265_to_annex_b_bitstream_converter.h',
            ],
          }],

@@ -1,6 +1,6 @@
 --- media/filters/stream_parser_factory.cc	2017-12-07 11:10:34.119804824 +0000
 +++ media/filters/stream_parser_factory.cc	2017-12-07 11:13:08.702872653 +0000
-@@ -333,38 +333,16 @@
+@@ -333,38 +333,15 @@
      std::vector<CodecInfo::HistogramTag>* video_codecs) {
    switch (codec_info->type) {
      case CodecInfo::AUDIO:
