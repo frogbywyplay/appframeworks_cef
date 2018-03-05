@@ -293,6 +293,8 @@ void CefStreamController::ConfigChanged() {
       break;
   }
 
+  state_ = kReady;
+
   Read();
 }
 
