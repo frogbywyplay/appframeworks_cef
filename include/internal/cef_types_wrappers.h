@@ -557,6 +557,7 @@ struct CefSettingsTraits {
     cef_string_clear(&s->browser_subprocess_path);
     cef_string_clear(&s->cache_path);
     cef_string_clear(&s->http_cache_path);
+    cef_string_clear(&s->shader_cache_path);
     cef_string_clear(&s->user_data_path);
     cef_string_clear(&s->user_agent);
     cef_string_clear(&s->product_version);
@@ -584,6 +585,8 @@ struct CefSettingsTraits {
         &target->cache_path, copy);
     cef_string_set(src->http_cache_path.str, src->http_cache_path.length,
         &target->http_cache_path, copy);
+    cef_string_set(src->shader_cache_path.str, src->shader_cache_path.length,
+        &target->shader_cache_path, copy);
     cef_string_set(src->user_data_path.str, src->user_data_path.length,
         &target->user_data_path, copy);
     target->persist_session_cookies = src->persist_session_cookies;
@@ -633,6 +636,7 @@ struct CefRequestContextSettingsTraits {
   static inline void clear(struct_type* s) {
     cef_string_clear(&s->cache_path);
     cef_string_clear(&s->http_cache_path);
+    cef_string_clear(&s->shader_cache_path);
     cef_string_clear(&s->accept_language_list);
   }
 
@@ -642,6 +646,8 @@ struct CefRequestContextSettingsTraits {
         &target->cache_path, copy);
     cef_string_set(src->http_cache_path.str, src->http_cache_path.length,
         &target->http_cache_path, copy);
+    cef_string_set(src->shader_cache_path.str, src->shader_cache_path.length,
+        &target->shader_cache_path, copy);
     target->persist_session_cookies = src->persist_session_cookies;
     target->persist_user_preferences = src->persist_user_preferences;
     target->ignore_certificate_errors = src->ignore_certificate_errors;

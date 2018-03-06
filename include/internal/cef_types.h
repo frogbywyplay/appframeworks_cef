@@ -226,6 +226,10 @@ typedef struct _cef_settings_t {
   cef_string_t http_cache_path;
 
   ///
+  // The location where the GPU cache data will be sotred on disk.
+  cef_string_t shader_cache_path;
+
+  ///
   // The location where user data such as spell checking dictionary files will
   // be stored on disk. If empty then the default platform-specific user data
   // directory will be used ("~/.cef_user_data" directory on Linux,
@@ -424,6 +428,8 @@ typedef struct _cef_request_context_settings_t {
   cef_string_t cache_path;
 
   cef_string_t http_cache_path;
+
+  cef_string_t shader_cache_path;
 
   ///
   // To persist session cookies (cookies without an expiry date or validity

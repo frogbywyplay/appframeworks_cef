@@ -1,0 +1,60 @@
+--- content/public/browser/storage_partition.h	2018-03-06 18:27:21.124305150 +0100
++++ content/public/browser/storage_partition.h	2018-03-06 18:27:55.450635819 +0100
+@@ -60,6 +60,8 @@
+ class CONTENT_EXPORT StoragePartition {
+  public:
+   virtual base::FilePath GetPath() = 0;
++  virtual base::FilePath GetShaderCachePath() = 0;
++  virtual void SetShaderCachePath(base::FilePath path) = 0;
+   virtual net::URLRequestContextGetter* GetURLRequestContext() = 0;
+   virtual net::URLRequestContextGetter* GetMediaURLRequestContext() = 0;
+   virtual storage::QuotaManager* GetQuotaManager() = 0;
+--- content/browser/storage_partition_impl.h	2018-03-06 18:27:29.107560268 +0100
++++ content/browser/storage_partition_impl.h	2018-03-06 18:28:04.693878809 +0100
+@@ -53,6 +53,8 @@
+ 
+   // StoragePartition interface.
+   base::FilePath GetPath() override;
++  base::FilePath GetShaderCachePath() override;
++  void SetShaderCachePath(base::FilePath path) override;
+   net::URLRequestContextGetter* GetURLRequestContext() override;
+   net::URLRequestContextGetter* GetMediaURLRequestContext() override;
+   storage::QuotaManager* GetQuotaManager() override;
+@@ -204,6 +206,7 @@
+       net::URLRequestContextGetter* media_url_request_context);
+ 
+   base::FilePath partition_path_;
++  base::FilePath shader_cache_path_;
+   scoped_refptr<net::URLRequestContextGetter> url_request_context_;
+   scoped_refptr<net::URLRequestContextGetter> media_url_request_context_;
+   scoped_refptr<storage::QuotaManager> quota_manager_;
+--- content/browser/storage_partition_impl.cc	2018-03-06 18:27:36.624153332 +0100
++++ content/browser/storage_partition_impl.cc	2018-03-06 18:28:13.420460236 +0100
+@@ -530,6 +530,16 @@
+   return partition_path_;
+ }
+ 
++base::FilePath StoragePartitionImpl::GetShaderCachePath() {
++  if (shader_cache_path_.empty())
++    return GetPath();
++  return shader_cache_path_;
++}
++
++void StoragePartitionImpl::SetShaderCachePath(base::FilePath path) {
++  shader_cache_path_ = path;
++}
++
+ net::URLRequestContextGetter* StoragePartitionImpl::GetURLRequestContext() {
+   return url_request_context_.get();
+ }
+--- content/browser/renderer_host/render_process_host_impl.cc	2018-03-06 18:27:44.834072985 +0100
++++ content/browser/renderer_host/render_process_host_impl.cc	2018-03-06 18:28:32.806937708 +0100
+@@ -574,7 +574,7 @@
+           switches::kDisableGpuShaderDiskCache)) {
+     BrowserThread::PostTask(BrowserThread::IO, FROM_HERE,
+                             base::Bind(&CacheShaderInfo, GetID(),
+-                                       storage_partition_impl_->GetPath()));
++                                       storage_partition_impl_->GetShaderCachePath()));
+   }
+ 
+ #if defined(OS_MACOSX)

@@ -198,6 +198,11 @@ CefBrowserContextImpl::CefBrowserContextImpl(
     const CefRequestContextSettings& settings)
     : settings_(settings) {
   g_manager.Get().AddImpl(this);
+
+  if (settings.shader_cache_path.length > 0) {
+    GetStoragePartition(this, NULL)->SetShaderCachePath(
+      base::FilePath(CefString(&settings.shader_cache_path)));
+  }
 }
 
 CefBrowserContextImpl::~CefBrowserContextImpl() {
