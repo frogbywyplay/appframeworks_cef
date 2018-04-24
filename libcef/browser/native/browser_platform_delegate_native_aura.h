@@ -9,9 +9,15 @@
 #include "ui/aura/client/window_tree_client.h"
 #include "ui/views/widget/widget.h"
 
+class CefAuraScreen;
+
 class CefBrowserPlatformDelegateNativeAura : public CefBrowserPlatformDelegateNative
 {
   public:
+
+    static CefBrowserPlatformDelegateNative* Create(
+      const CefWindowInfo& window_info);
+
     explicit CefBrowserPlatformDelegateNativeAura(
       const CefWindowInfo& window_info);
 
@@ -47,18 +53,12 @@ class CefBrowserPlatformDelegateNativeAura : public CefBrowserPlatformDelegateNa
   private:
     void TranslateMouseEvent(blink::WebMouseEvent& result,
                              const CefMouseEvent& mouse_event) const;
-
-    void InitHostPlatform(gfx::Size& size);
+    void CreateScreen();
 
     bool host_window_created_;
 
-    //std::unique_ptr<views::Widget> window_widget_;
     aura::Window * window_;
-    static std::unique_ptr<aura::WindowTreeHost> host_;
-    static std::unique_ptr<aura::client::FocusClient> focus_client_;
-    static std::unique_ptr<aura::client::DefaultCaptureClient> capture_client_;
-    static std::unique_ptr<aura::client::WindowTreeClient> window_tree_client_;
-    //std::unique_ptr<ui::EventHandler> ime_filter_;
+    std::unique_ptr<CefAuraScreen> screen_;
 };
 
 

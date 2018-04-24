@@ -133,6 +133,10 @@ const char kEnablePreferenceTesting[]     = "enable-preference-testing";
 //  - fb:/dev/fbX: apply the size of the framebuffer's virtual screen
 const char kHostWindowSize[]              = "host-window-size";
 
+// Scale factor between window size and max display resolution.
+// This will be used as devicePixelRatio.
+const char kHostScaleFactor[]             = "host-scale-factor";
+
 // Use the given address instead of the default loopback for accepting remote
 // debugging connections. Should be used together with --remote-debugging-port.
 // Note that the remote debugging protocol does not perform any authentication,

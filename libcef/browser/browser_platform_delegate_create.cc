@@ -41,7 +41,7 @@ std::unique_ptr<CefBrowserPlatformDelegateNative> CreateNativeDelegate(
 #elif defined(OS_LINUX)
 #if defined(USE_AURA)
   return base::WrapUnique(
-      new CefBrowserPlatformDelegateNativeAura(window_info));
+      CefBrowserPlatformDelegateNativeAura::Create(window_info));
 #else
   return base::WrapUnique(
       new CefBrowserPlatformDelegateNativeLinux(window_info));

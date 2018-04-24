@@ -10,6 +10,7 @@
 #include <fcntl.h>
 #include <linux/fb.h>
 #include <sys/ioctl.h>
+#include <cstdlib>
 
 #include <iostream>
 
@@ -31,11 +32,10 @@
 #include "ui/display/screen.h"
 
 #include "ui/aura/env.h"
-#include "ui/aura/test/test_screen.h"
 #include "ui/aura/window_event_dispatcher.h"
 #include "ui/aura/layout_manager.h"
 #include "ui/aura/test/test_focus_client.h"
-#include "ui/aura/test/test_window_tree_client.h"
+#include "ui/aura/client/window_tree_client.h"
 #include "ui/aura/client/aura_constants.h"
 #include "ui/aura/window_event_dispatcher.h"
 
@@ -117,58 +117,126 @@ namespace {
       DISALLOW_COPY_AND_ASSIGN(FillLayout);
   };
 
-  /*class MinimalInputEventFilter : public ui::internal::InputMethodDelegate,
-                                  public ui::EventHandler {
-    public:
-      explicit MinimalInputEventFilter(aura::WindowTreeHost* host)
-        : host_(host),
-          input_method_(host->GetInputMethod()) {
-        host_->window()->AddPreTargetHandler(this);
-        host_->window()->SetProperty(aura::client::kRootWindowInputMethodKey,
-                                     input_method_.get());
-      }
-
-      virtual ~MinimalInputEventFilter() {
-        host_->window()->RemovePreTargetHandler(this);
-        host_->window()->SetProperty(aura::client::kRootWindowInputMethodKey,
-                                     static_cast<ui::InputMethod*>(NULL));
-      }
-
-    private:
-      // ui::EventHandler:
-      virtual void OnKeyEvent(ui::KeyEvent* event) {
-        // See the comment in InputMethodEventFilter::OnKeyEvent() for details.
-        if (event->IsTranslated()) {
-          event->SetTranslated(false);
-        } else {
-          if (input_method_->DispatchKeyEvent(*event))
-            event->StopPropagation();
-        }
-      }
-
-      // ui::internal::InputMethodDelegate:
-      virtual bool DispatchKeyEventPostIME(const ui::KeyEvent& event) {
-        // See the comment in InputMethodEventFilter::DispatchKeyEventPostIME() for
-        // details.
-        ui::KeyEvent aura_event(event);
-        aura_event.SetTranslated(true);
-        ui::EventDispatchDetails details =
-          host_->dispatcher()->OnEventFromSource(&aura_event);
-        return aura_event.handled() || details.dispatcher_destroyed;
-      }
-
-      aura::WindowTreeHost* host_;
-      std::unique_ptr<ui::InputMethod> input_method_;
-
-      DISALLOW_COPY_AND_ASSIGN(MinimalInputEventFilter);
-      };*/
-
 }
 
-std::unique_ptr<aura::WindowTreeHost> CefBrowserPlatformDelegateNativeAura::host_;
-std::unique_ptr<aura::client::FocusClient> CefBrowserPlatformDelegateNativeAura::focus_client_;
-std::unique_ptr<aura::client::DefaultCaptureClient> CefBrowserPlatformDelegateNativeAura::capture_client_;
-std::unique_ptr<aura::client::WindowTreeClient> CefBrowserPlatformDelegateNativeAura::window_tree_client_;
+class CefAuraScreen : public display::Screen,
+		      public aura::WindowObserver,
+		      public aura::client::WindowTreeClient {
+  public:
+
+    CefAuraScreen(gfx::Size size, float scale_factor) {
+      static int64_t synthesized_display_id = 2000;
+      display_.set_id(synthesized_display_id++);
+      display_.SetScaleAndBounds(scale_factor, gfx::Rect(size));
+
+      host_.reset(aura::WindowTreeHost::Create(gfx::Rect(display_.GetSizeInPixel())));
+      host_->GetInputMethod()->OnFocus();
+      host_->window()->AddObserver(this);
+      host_->InitHost();
+      host_->window()->SetLayoutManager(new ::FillLayout(host_->window()));
+      aura::client::SetWindowTreeClient(host_->window(), this);
+
+      focus_client_.reset(new aura::test::TestFocusClient());
+      aura::client::SetFocusClient(host_->window(), focus_client_.get());
+
+      display::Screen::SetScreenInstance(this);
+
+      new wm::DefaultActivationClient(host_->window());
+    }
+
+    virtual ~CefAuraScreen() override {
+      if (host_.get())
+	aura::client::SetWindowTreeClient(host_->window(), NULL);
+
+      display::Screen::SetScreenInstance(NULL);
+    }
+
+    aura::WindowTreeHost* host() {
+      return host_.get();
+    }
+
+    // aura::client::WindowTreeClient
+    virtual aura::Window* GetDefaultParent(aura::Window* context,
+					   aura::Window* window,
+					   const gfx::Rect& bounds) override {
+      if (host_.get())
+	return host_->window();
+
+      return NULL;
+    }
+
+    // display::Screen overrides
+    virtual display::Display GetPrimaryDisplay() const override {
+      return display_;
+    }
+
+  protected:
+
+    // aura::WindowObserver overrides
+    virtual void OnWindowBoundsChanged(aura::Window* window,
+				       const gfx::Rect& old_bounds,
+				       const gfx::Rect& new_bounds) override {
+      display_.SetSize(gfx::ScaleToFlooredSize(
+			 new_bounds.size(), display_.device_scale_factor()));
+    }
+
+    virtual void OnWindowDestroying(aura::Window* window) override {
+      if (host_->window() == window)
+	host_.reset(NULL);
+    }
+
+    // display::Screen overrides
+    virtual gfx::Point GetCursorScreenPoint() override {
+      return aura::Env::GetInstance()->last_mouse_location();
+    }
+
+    virtual bool IsWindowUnderCursor(gfx::NativeWindow window) override {
+      return GetWindowAtScreenPoint(GetCursorScreenPoint()) == window;
+    }
+
+    virtual gfx::NativeWindow GetWindowAtScreenPoint(const gfx::Point& point) override {
+      if (!host_.get() || !host_->window())
+	return NULL;
+      return host_->window()->GetTopWindowContainingPoint(point);
+    }
+
+    virtual int GetNumDisplays() const override {
+      return 1;
+    }
+
+    virtual std::vector<display::Display> GetAllDisplays() const override {
+      return std::vector<display::Display>(1, display_);
+    }
+
+    virtual display::Display GetDisplayNearestWindow(gfx::NativeView view) const override {
+      return display_;
+    }
+
+    virtual display::Display GetDisplayNearestPoint(
+      const gfx::Point& point) const override {
+      return display_;
+
+    }
+
+    virtual display::Display GetDisplayMatching(
+      const gfx::Rect& match_rect) const override {
+      return display_;
+    }
+
+    virtual void AddObserver(display::DisplayObserver* observer) override {
+    }
+
+    virtual void RemoveObserver(display::DisplayObserver* observer) override {
+    }
+
+  private:
+
+    display::Display display_;
+    std::unique_ptr<aura::WindowTreeHost> host_;
+    std::unique_ptr<aura::client::FocusClient> focus_client_;
+
+    DISALLOW_COPY_AND_ASSIGN(CefAuraScreen);
+};
 
 CefBrowserPlatformDelegateNativeAura::CefBrowserPlatformDelegateNativeAura(
   const CefWindowInfo& window_info)
@@ -186,100 +254,94 @@ void CefBrowserPlatformDelegateNativeAura::BrowserDestroyed(CefBrowserHostImpl* 
     browser->Release();
 }
 
-void CefBrowserPlatformDelegateNativeAura::InitHostPlatform(gfx::Size& size)
+void CefBrowserPlatformDelegateNativeAura::CreateScreen()
 {
-  aura::TestScreen* screen = aura::TestScreen::Create(size);
-  display::Screen::SetScreenInstance(screen);
+  CefRefPtr<CefCommandLine> command_line =
+    CefCommandLine::GetGlobalCommandLine();
+  float scale_factor = 1.0f;
+  gfx::Size window_size(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
 
-  host_.reset(aura::WindowTreeHost::Create(gfx::Rect(size)));
-  host_->InitHost();
-  host_->window()->SetLayoutManager(new ::FillLayout(host_->window()));
+  if (command_line->HasSwitch(switches::kHostWindowSize)) {
+    bool window_size_valid = true;
+    std::string window_size_str = command_line->GetSwitchValue(
+      switches::kHostWindowSize);
 
-  focus_client_.reset(new aura::test::TestFocusClient());
-  aura::client::SetFocusClient(host_->window(), focus_client_.get());
+    /* fb:/dev/fbX */
+    if (window_size_str.compare(0, 3, "fb:") == 0) {
+      const std::string fbdev_path = window_size_str.substr(3);
 
-  new wm::DefaultActivationClient(host_->window());
-  capture_client_.reset(
-      new aura::client::DefaultCaptureClient(host_->window()));
-  window_tree_client_.reset(
-      new aura::test::TestWindowTreeClient(host_->window()));
-  //ime_filter_.reset(new ::MinimalInputEventFilter(host_.get()));
+      if (fbdev_path.empty()) {
+	window_size_valid = false;
+      } else {
+	LOG(INFO) << "Using size of framebuffer " << fbdev_path;
+	if (!::GetFramebufferSize(fbdev_path, window_size))
+	  return false;
+      }
+    }
+    /* width,height */
+    else {
+      int width, height;
+
+      if (sscanf(window_size_str.c_str(), "%d,%d", &width, &height) == 2 &&
+	  width > 0 && height > 0) {
+	window_size.SetSize(width, height);
+      } else {
+	window_size_valid = false;
+      }
+    }
+
+    if (!window_size_valid) {
+      LOG(ERROR) << "Ignoring invalid window size " << window_size_str;
+    }
+  }
+
+  if (command_line->HasSwitch(switches::kHostScaleFactor)) {
+    std::string scale_factor_str = command_line->GetSwitchValue(
+      switches::kHostScaleFactor);
+    float scale_factor_val = ::atof(scale_factor_str.c_str());
+
+    if (scale_factor_val >= 1.0f)
+      scale_factor = scale_factor_val;
+  }
+
+  screen_.reset(new CefAuraScreen(window_size, scale_factor));
+
+  LOG(INFO) << "Window size: " << window_size.width() << 'x'
+	    << window_size.height() << ", scaleFactor=" << scale_factor;
 }
 
 bool CefBrowserPlatformDelegateNativeAura::CreateHostWindow()
 {
-  if (!host_.get()) {
-    CefRefPtr<CefCommandLine> command_line =
-      CefCommandLine::GetGlobalCommandLine();
-    gfx::Size window_size(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
+  if (!screen_.get())
+    CreateScreen();
 
-    if (command_line->HasSwitch(switches::kHostWindowSize)) {
-      bool window_size_valid = true;
-      std::string window_size_str = command_line->GetSwitchValue(
-          switches::kHostWindowSize);
-
-      /* fb:/dev/fbX */
-      if (window_size_str.compare(0, 3, "fb:") == 0) {
-        const std::string fbdev_path = window_size_str.substr(3);
-
-        if (fbdev_path.empty()) {
-          window_size_valid = false;
-        } else {
-          LOG(INFO) << "Using size of framebuffer " << fbdev_path;
-          if (!::GetFramebufferSize(fbdev_path, window_size))
-            return false;
-        }
-      }
-      /* width,height */
-      else {
-        int width, height;
-
-        if (sscanf(window_size_str.c_str(), "%d,%d", &width, &height) == 2 &&
-            width > 0 && height > 0) {
-          window_size.SetSize(width, height);
-        } else {
-          window_size_valid = false;
-        }
-      }
-
-      if (!window_size_valid) {
-        LOG(ERROR) << "Ignoring invalid window size " << window_size_str;
-      }
-    }
-
-    LOG(INFO) << "Window size: " << window_size.width() << 'x'
-        << window_size.height();
-
-    InitHostPlatform(window_size);
-  }
-
-  gfx::Rect rect(host_->GetBounds());
+  gfx::Rect rect(screen_->host()->GetBounds());
 
   window_ = browser_->web_contents()->GetNativeView();
 
   // Set z index as user data
   window_->set_user_data(&window_info_);
 
-  aura::Window* parent = host_->window();
+  aura::Window* parent = screen_->host()->window();
   if (!parent->Contains(window_))
     parent->AddChild(window_);
 
   // Reorganize windows depending on z-depth
   aura::Window::Windows::const_iterator ite;
   for (ite=parent->children().begin(); ite!=parent->children().end(); ite++) {
-      // For all other child window than the one we just added
-      if ((*ite) != window_) {
-          CefWindowInfo* winfo = (CefWindowInfo*)(*ite)->user_data();
-          // Added window depth is lower than current one, add it below
-          if (window_info_.z_index < winfo->z_index) {
-              parent->StackChildBelow(window_, (*ite));
-              break;
-          }
+    // For all other child window than the one we just added
+    if ((*ite) != window_) {
+      CefWindowInfo* winfo = (CefWindowInfo*)(*ite)->user_data();
+      // Added window depth is lower than current one, add it below
+      if (window_info_.z_index < winfo->z_index) {
+	parent->StackChildBelow(window_, (*ite));
+	break;
       }
+    }
   }
   // Reached the end ? child hasn't been stacked, set it on top
   if (ite==parent->children().end()) {
-      parent->StackChildAtTop(window_);
+    parent->StackChildAtTop(window_);
   }
 
   window_info_.window = reinterpret_cast<CefWindowHandle>(window_);
@@ -302,7 +364,7 @@ bool CefBrowserPlatformDelegateNativeAura::CreateHostWindow()
   // window_widget_.reset(delegate_view->GetWidget());
   // window_widget_->Show();
   window_->Show();
-  host_->Show();
+  screen_->host()->Show();
 
   // As an additional requirement on Linux, we must set the colors for the
   // render widgets in webkit.
@@ -341,9 +403,9 @@ void CefBrowserPlatformDelegateNativeAura::CloseHostWindow()
     window_->Close();
   */
   if (window_) {
-    aura::Window* parent = host_->window();
+    aura::Window* parent = screen_->host()->window();
     if (parent->Contains(window_)) {
-        parent->RemoveChild(window_);
+      parent->RemoveChild(window_);
     }
   }
   CEF_POST_TASK(CEF_UIT, base::Bind(&CefBrowserHostImpl::WindowDestroyed, browser_));
@@ -390,7 +452,8 @@ gfx::Point CefBrowserPlatformDelegateNativeAura::GetScreenPoint(
   if (windowless_handler_)
     return windowless_handler_->GetParentScreenPoint(view);
 
-  const gfx::Rect& bounds_in_screen = reinterpret_cast<aura::Window*>(window_info_.parent_window)->GetBoundsInScreen();
+  const gfx::Rect& bounds_in_screen =
+    reinterpret_cast<aura::Window*>(window_info_.parent_window)->GetBoundsInScreen();
   return gfx::Point(bounds_in_screen.x() + view.x(),
                     bounds_in_screen.y() + view.y());
 }
@@ -581,7 +644,7 @@ void CefBrowserPlatformDelegateNativeAura::TranslateMouseEvent(
 }
 
 CefEventHandle CefBrowserPlatformDelegateNativeAura::GetEventHandle(
-    const content::NativeWebKeyboardEvent& event) const {
+  const content::NativeWebKeyboardEvent& event) const {
   if (!event.os_event)
     return NULL;
   return const_cast<CefEventHandle>(event.os_event->native_event());
@@ -589,4 +652,9 @@ CefEventHandle CefBrowserPlatformDelegateNativeAura::GetEventHandle(
 
 std::unique_ptr<CefMenuRunner> CefBrowserPlatformDelegateNativeAura::CreateMenuRunner() {
   return NULL;
+}
+
+CefBrowserPlatformDelegateNative* CefBrowserPlatformDelegateNativeAura::Create(
+  const CefWindowInfo& window_info) {
+  return new CefBrowserPlatformDelegateNativeAura(window_info);
 }
