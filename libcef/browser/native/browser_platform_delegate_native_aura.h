@@ -58,7 +58,7 @@ class CefBrowserPlatformDelegateNativeAura : public CefBrowserPlatformDelegateNa
     bool host_window_created_;
 
     aura::Window * window_;
-    std::unique_ptr<CefAuraScreen> screen_;
+    static std::unique_ptr<CefAuraScreen> screen_;
 };
 
 

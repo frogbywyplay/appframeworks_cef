@@ -238,6 +238,8 @@ class CefAuraScreen : public display::Screen,
     DISALLOW_COPY_AND_ASSIGN(CefAuraScreen);
 };
 
+std::unique_ptr<CefAuraScreen> CefBrowserPlatformDelegateNativeAura::screen_;
+
 CefBrowserPlatformDelegateNativeAura::CefBrowserPlatformDelegateNativeAura(
   const CefWindowInfo& window_info)
   : CefBrowserPlatformDelegateNative(window_info),
