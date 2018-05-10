@@ -201,6 +201,8 @@ bool CefGpuMediaService::ChannelListener::OnMessageReceived(const IPC::Message& 
 				    CefGpuMediaService::ChannelListener::OnInitialize)
     IPC_MESSAGE_HANDLER_DELAY_REPLY(CefGpuMediaMsg_Cleanup,
 				    CefGpuMediaService::ChannelListener::OnCleanup)
+    IPC_MESSAGE_HANDLER_DELAY_REPLY(CefGpuMediaMsg_Reset,
+				    CefGpuMediaService::ChannelListener::OnReset)
     IPC_MESSAGE_HANDLER(CefGpuMediaMsg_Play,
 			CefGpuMediaService::ChannelListener::OnPlay)
     IPC_MESSAGE_HANDLER(CefGpuMediaMsg_Pause,
@@ -211,8 +213,6 @@ bool CefGpuMediaService::ChannelListener::OnMessageReceived(const IPC::Message& 
 			CefGpuMediaService::ChannelListener::OnStop)
     IPC_MESSAGE_HANDLER(CefGpuMediaMsg_Flush,
 			CefGpuMediaService::ChannelListener::OnFlush)
-    IPC_MESSAGE_HANDLER(CefGpuMediaMsg_Reset,
-			CefGpuMediaService::ChannelListener::OnReset)
     IPC_MESSAGE_HANDLER(CefGpuMediaMsg_SetPlaybackRate,
 			CefGpuMediaService::ChannelListener::OnSetPlaybackRate)
     IPC_MESSAGE_HANDLER(CefGpuMediaMsg_SetVolume,
@@ -297,6 +297,11 @@ void CefGpuMediaService::ChannelListener::OnCleanup(IPC::Message* reply_message)
   channel_->Send(reply_message);
 }
 
+void CefGpuMediaService::ChannelListener::OnReset(IPC::Message* reply_message) {
+  delegate_->Reset();
+  channel_->Send(reply_message);
+}
+
 void CefGpuMediaService::ChannelListener::OnPlay() {
   if (stub_) {
     delegate_->Play();
@@ -325,12 +330,6 @@ void CefGpuMediaService::ChannelListener::OnFlush() {
   if (stub_) {
     delegate_->Flush();
     channel_->Send(new CefGpuMediaMsg_Flushed(stub_->route_id()));
-  }
-}
-
-void CefGpuMediaService::ChannelListener::OnReset() {
-  if (stub_) {
-    delegate_->Reset();
   }
 }
 

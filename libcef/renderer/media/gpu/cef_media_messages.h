@@ -53,6 +53,7 @@ IPC_SYNC_MESSAGE_ROUTED1_1(CefGpuMediaMsg_Initialize,
 			   CefGpuMediaMsg_Initialize_Params,
 			   CefGpuMediaMsg_Initialize_Result)
 IPC_SYNC_MESSAGE_ROUTED0_0(CefGpuMediaMsg_Cleanup)
+IPC_SYNC_MESSAGE_ROUTED0_0(CefGpuMediaMsg_Reset)
 
 /* Renderer -> GPU */
 IPC_MESSAGE_ROUTED0(CefGpuMediaMsg_Play)
@@ -60,7 +61,6 @@ IPC_MESSAGE_ROUTED0(CefGpuMediaMsg_Pause)
 IPC_MESSAGE_ROUTED0(CefGpuMediaMsg_Resume)
 IPC_MESSAGE_ROUTED0(CefGpuMediaMsg_Stop)
 IPC_MESSAGE_ROUTED0(CefGpuMediaMsg_Flush)
-IPC_MESSAGE_ROUTED0(CefGpuMediaMsg_Reset)
 IPC_MESSAGE_ROUTED1(CefGpuMediaMsg_SetPlaybackRate, double /* rate */)
 IPC_MESSAGE_ROUTED1(CefGpuMediaMsg_SetVolume, float /* volume */)
 IPC_MESSAGE_ROUTED1(CefGpuMediaMsg_SetVideoPlan,

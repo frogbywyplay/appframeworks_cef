@@ -67,12 +67,12 @@ class CefGpuMediaService {
 	  CefGpuMediaMsg_Initialize_Params params,
 	  IPC::Message* reply_message);
 	void OnCleanup(IPC::Message* reply_message);
+	void OnReset(IPC::Message* reply_message);
 	void OnPlay();
 	void OnPause();
 	void OnResume();
 	void OnStop();
 	void OnFlush();
-	void OnReset();
 	void OnSetPlaybackRate(double rate);
 	void OnSetVolume(float volume);
 	void OnSetVideoPlan(CefGpuMediaMsg_SetVideoPlan_Params params);

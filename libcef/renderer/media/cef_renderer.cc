@@ -137,6 +137,10 @@ void CefMediaRenderer::StartPlayingFrom(base::TimeDelta time)
       media_gpu_proxy_->Reset();
       break;
     case FLUSHING:
+      media_task_runner_->PostTask(
+	FROM_HERE,
+	base::Bind(&CefMediaRenderer::SendHaveEnough, weak_this_)
+	);
       break;
     default:
       break;
