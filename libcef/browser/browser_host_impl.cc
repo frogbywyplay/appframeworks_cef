@@ -1953,6 +1953,10 @@ void CefBrowserHostImpl::DragSourceEndedAt(
   platform_delegate_->DragSourceEndedAt(x, y, op);
 }
 
+void CefBrowserHostImpl::SetAcceptLanguage(const CefString& lang_list) {
+  CefString(&settings_.accept_language_list) = lang_list;
+}
+
 
 // content::WebContentsDelegate methods.
 // -----------------------------------------------------------------------------

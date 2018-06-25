@@ -938,6 +938,23 @@ void CEF_CALLBACK browser_host_drag_source_system_drag_ended(
   CefBrowserHostCppToC::Get(self)->DragSourceSystemDragEnded();
 }
 
+void CEF_CALLBACK browser_host_set_accept_language(
+    struct _cef_browser_host_t* self, const cef_string_t* lang_list) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return;
+  // Verify param: lang_list; type: string_byref_const
+  DCHECK(lang_list);
+  if (!lang_list)
+    return;
+
+  // Execute
+  CefBrowserHostCppToC::Get(self)->SetAcceptLanguage(
+      CefString(lang_list));
+}
+
 }  // namespace
 
 
@@ -1003,6 +1020,7 @@ CefBrowserHostCppToC::CefBrowserHostCppToC() {
   GetStruct()->drag_source_ended_at = browser_host_drag_source_ended_at;
   GetStruct()->drag_source_system_drag_ended =
       browser_host_drag_source_system_drag_ended;
+  GetStruct()->set_accept_language = browser_host_set_accept_language;
 }
 
 template<> CefRefPtr<CefBrowserHost> CefCppToC<CefBrowserHostCppToC,

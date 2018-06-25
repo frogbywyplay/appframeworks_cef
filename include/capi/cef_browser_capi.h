@@ -700,6 +700,12 @@ typedef struct _cef_browser_host_t {
   ///
   void (CEF_CALLBACK *drag_source_system_drag_ended)(
       struct _cef_browser_host_t* self);
+
+  ///
+  // Set the language_accept_list attribute of cef_browser_tSettings.
+  ///
+  void (CEF_CALLBACK *set_accept_language)(struct _cef_browser_host_t* self,
+      const cef_string_t* lang_list);
 } cef_browser_host_t;
 
 

@@ -753,6 +753,12 @@ class CefBrowserHost : public virtual CefBase {
   ///
   /*--cef()--*/
   virtual void DragSourceSystemDragEnded() =0;
+
+  ///
+  // Set the language_accept_list attribute of CefBrowserSettings.
+  ///
+  /*--cef()--*/
+  virtual void SetAcceptLanguage(const CefString& lang_list) =0;
 };
 
 #endif  // CEF_INCLUDE_CEF_BROWSER_H_

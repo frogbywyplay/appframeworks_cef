@@ -218,6 +218,7 @@ class CefBrowserHostImpl : public CefBrowserHost,
   void DragTargetDrop(const CefMouseEvent& event) override;
   void DragSourceSystemDragEnded() override;
   void DragSourceEndedAt(int x, int y, DragOperationsMask op) override;
+  void SetAcceptLanguage(const CefString& lang_list) override;
 
   // CefBrowser methods.
   CefRefPtr<CefBrowserHost> GetHost() override;

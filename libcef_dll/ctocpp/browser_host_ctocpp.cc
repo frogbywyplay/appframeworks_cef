@@ -789,6 +789,23 @@ void CefBrowserHostCToCpp::DragSourceSystemDragEnded() {
   _struct->drag_source_system_drag_ended(_struct);
 }
 
+void CefBrowserHostCToCpp::SetAcceptLanguage(const CefString& lang_list) {
+  cef_browser_host_t* _struct = GetStruct();
+  if (CEF_MEMBER_MISSING(_struct, set_accept_language))
+    return;
+
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Verify param: lang_list; type: string_byref_const
+  DCHECK(!lang_list.empty());
+  if (lang_list.empty())
+    return;
+
+  // Execute
+  _struct->set_accept_language(_struct,
+      lang_list.GetStruct());
+}
+
 
 // CONSTRUCTOR - Do not edit by hand.
 

@@ -97,6 +97,7 @@ class CefBrowserHostCToCpp
   void DragTargetDrop(const CefMouseEvent& event) OVERRIDE;
   void DragSourceEndedAt(int x, int y, DragOperationsMask op) OVERRIDE;
   void DragSourceSystemDragEnded() OVERRIDE;
+  void SetAcceptLanguage(const CefString& lang_list) OVERRIDE;
 };
 
 #endif  // USING_CEF_SHARED
