@@ -1,0 +1,49 @@
+From 233d10afd0c554272d3f620ea73a9930baa1cd75 Mon Sep 17 00:00:00 2001
+From: Gauthier Haderer <ghaderer@wyplay.com>
+Date: Wed, 19 Jun 2019 16:41:17 +0200
+Subject: [PATCH 1/2] In WebKit, call mmap() with MADV_DONTNEED instead on
+ MADV_FREE.
+
+MADV_FREE requires a kernel 4.5+. Besides, more recent versions of
+Chrome switched to MADV_DONTNEED too.
+
+This is an adaptation of the following commits:
+- https://chromium.googlesource.com/chromium/src/+/292df1662cdb1d04f210343aee0f9fc361fd16c6
+- https://chromium.googlesource.com/chromium/src/+/a0d254f59db792363f4698f4a2fab64e99e247e8
+---
+ third_party/WebKit/Source/wtf/allocator/PageAllocator.cpp | 12 +++++++-----
+ 1 file changed, 7 insertions(+), 5 deletions(-)
+
+diff --git third_party/WebKit/Source/wtf/allocator/PageAllocator.cpp third_party/WebKit/Source/wtf/allocator/PageAllocator.cpp
+index 12c9a7b..d7892f2 100644
+--- third_party/WebKit/Source/wtf/allocator/PageAllocator.cpp
++++ third_party/WebKit/Source/wtf/allocator/PageAllocator.cpp
+@@ -41,10 +41,6 @@
+ #include <errno.h>
+ #include <sys/mman.h>
+ 
+-#ifndef MADV_FREE
+-#define MADV_FREE MADV_DONTNEED
+-#endif
+-
+ #ifndef MAP_ANONYMOUS
+ #define MAP_ANONYMOUS MAP_ANON
+ #endif
+@@ -224,7 +220,13 @@ void decommitSystemPages(void* addr, size_t len)
+ {
+     ASSERT(!(len & kSystemPageOffsetMask));
+ #if OS(POSIX)
+-    int ret = madvise(addr, len, MADV_FREE);
++    // We have experimented with other flags, but with suboptimal results.
++    //
++    // MADV_FREE (Linux): Makes our memory measurements less predictable;
++    // performance benefits unclear.
++    //
++    // Therefore, we just do the simple thing: MADV_DONTNEED.
++    int ret = madvise(addr, len, MADV_DONTNEED);
+     RELEASE_ASSERT(!ret);
+ #else
+     setSystemPagesInaccessible(addr, len);
+-- 
+2.9.4
+

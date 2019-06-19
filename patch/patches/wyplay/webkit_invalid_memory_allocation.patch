@@ -1,0 +1,57 @@
+From b5ee696fa1424a1c22eca9e6aaa2a9d543eaa3b8 Mon Sep 17 00:00:00 2001
+From: Gauthier Haderer <ghaderer@wyplay.com>
+Date: Wed, 19 Jun 2019 16:50:01 +0200
+Subject: [PATCH 2/2] Fix invalid memory allocation in WebKit.
+
+This was inspired by
+https://chromium.googlesource.com/chromium/src/+/4d76b82b4c618c737011de232e58c771a6cba67d.
+---
+ .../WebKit/Source/wtf/allocator/PageAllocator.cpp  | 27 +++++++++++-----------
+ 1 file changed, 14 insertions(+), 13 deletions(-)
+
+diff --git third_party/WebKit/Source/wtf/allocator/PageAllocator.cpp third_party/WebKit/Source/wtf/allocator/PageAllocator.cpp
+index d7892f2..c3517b9 100644
+--- third_party/WebKit/Source/wtf/allocator/PageAllocator.cpp
++++ third_party/WebKit/Source/wtf/allocator/PageAllocator.cpp
+@@ -143,24 +143,25 @@ void* allocPages(void* addr, size_t len, size_t align, PageAccessibilityConfigur
+     // First try to force an exact-size, aligned allocation from our random base.
+     for (int count = 0; count < 3; ++count) {
+         void* ret = systemAllocPages(addr, len, pageAccessibility);
+-        if (kHintIsAdvisory || ret) {
++        if (ret != nullptr) {
+             // If the alignment is to our liking, we're done.
+-            if (!(reinterpret_cast<uintptr_t>(ret)& alignOffsetMask))
++            if (!(reinterpret_cast<uintptr_t>(ret) & alignOffsetMask))
+                 return ret;
++            // Free the memory and try again.
+             freePages(ret, len);
+-#if CPU(32BIT)
+-            addr = reinterpret_cast<void*>((reinterpret_cast<uintptr_t>(ret)+align) & alignBaseMask);
+-#endif
+-        } else if (!addr) { // We know we're OOM when an unhinted allocation fails.
+-            return nullptr;
+-
+         } else {
+-#if CPU(32BIT)
+-            addr = reinterpret_cast<char*>(addr) + align;
+-#endif
++            // |ret| is null; if this try was unhinted, we're OOM.
++            if (kHintIsAdvisory || addr == nullptr)
++                return nullptr;
+         }
+-
+-#if !CPU(32BIT) // Keep trying random addresses on systems that have a large address space.
++#if CPU(32BIT)
++        // For small address spaces, try the first aligned address >= |ret|. Note
++        // |ret| may be null, in which case |address| becomes null.
++        addr = reinterpret_cast<void*>(
++            (reinterpret_cast<uintptr_t>(ret) + alignOffsetMask) &
++            alignBaseMask);
++#else  // defined(ARCH_CPU_64_BITS)
++        // Keep trying random addresses on systems that have a large address space.
+         addr = getRandomPageBase();
+         addr = reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(addr) & alignBaseMask);
+ #endif
+-- 
+2.9.4
+
