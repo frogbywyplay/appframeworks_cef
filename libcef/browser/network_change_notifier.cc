@@ -24,6 +24,10 @@ void CefNetworkChangeNotifier::IPAddressChanged() {
   net::NetworkChangeNotifier::NotifyObserversOfIPAddressChange();
 }
 
+void CefNetworkChangeNotifier::DNSChanged() {
+  net::NetworkChangeNotifier::NotifyObserversOfDNSChange();
+}
+
 net::NetworkChangeNotifier::ConnectionType CefNetworkChangeNotifier::GetCurrentConnectionType() const {
   return static_cast<net::NetworkChangeNotifier::ConnectionType>(current_type_);
 }
@@ -42,4 +46,10 @@ void CefNetworkIPAddressChanged() {
   CefNetworkChangeNotifier *notifier = CefNetworkChangeNotifier::GetInstance();
   if (notifier)
     notifier->IPAddressChanged();
+}
+
+void CefNetworkDNSChanged() {
+  CefNetworkChangeNotifier *notifier = CefNetworkChangeNotifier::GetInstance();
+    if (notifier)
+      notifier->DNSChanged();
 }

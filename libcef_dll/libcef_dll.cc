@@ -422,6 +422,13 @@ CEF_EXPORT void cef_network_ipaddress_changed() {
   CefNetworkIPAddressChanged();
 }
 
+CEF_EXPORT void cef_network_dns_changed() {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  CefNetworkDNSChanged();
+}
+
 CEF_EXPORT int cef_add_cross_origin_whitelist_entry(
     const cef_string_t* source_origin, const cef_string_t* target_protocol,
     const cef_string_t* target_domain, int allow_target_subdomains) {

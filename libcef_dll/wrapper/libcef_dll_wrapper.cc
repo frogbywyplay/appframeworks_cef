@@ -413,6 +413,13 @@ CEF_GLOBAL void CefNetworkIPAddressChanged() {
   cef_network_ipaddress_changed();
 }
 
+CEF_GLOBAL void CefNetworkDNSChanged() {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  // Execute
+  cef_network_dns_changed();
+}
+
 CEF_GLOBAL bool CefAddCrossOriginWhitelistEntry(const CefString& source_origin,
     const CefString& target_protocol, const CefString& target_domain,
     bool allow_target_subdomains) {

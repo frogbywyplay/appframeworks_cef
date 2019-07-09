@@ -20,6 +20,7 @@ class CefNetworkChangeNotifier :
 
     void ConnectionTypeChanged(CefConnectionType type);
     void IPAddressChanged();
+    void DNSChanged();
 
   private :
 

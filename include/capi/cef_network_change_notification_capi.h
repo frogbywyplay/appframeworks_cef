@@ -55,6 +55,11 @@ CEF_EXPORT void cef_network_type_changed(cef_connection_type_t type);
 ///
 CEF_EXPORT void cef_network_ipaddress_changed();
 
+///
+// Called by the client to signal that the DNS has changed
+///
+CEF_EXPORT void cef_network_dns_changed();
+
 #ifdef __cplusplus
 }
 #endif

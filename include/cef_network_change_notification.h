@@ -35,4 +35,10 @@ void CefNetworkTypeChanged(CefConnectionType type);
 /*--cef()--*/
 void CefNetworkIPAddressChanged();
 
+///
+//// Called by the client to signal that the DNS has changed
+/////
+///*--cef()--*/
+void CefNetworkDNSChanged();
+
 #endif /* !CEF_INCLUDE_NETWORK_CHANGE_NOTIFIFICATION.H */
