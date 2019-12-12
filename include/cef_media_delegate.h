@@ -33,8 +33,10 @@ extern "C" {
     CodecPCM_S16BE = 10,
     CodecPCM_S24BE = 11,
     CodecOpus = 12,
+    CodecEAC3 = 13,
     CodecPCM_ALAW = 14,
     CodecALAC = 15,
+    CodecAC3 = 16,
   } cef_audio_codec_t;
 
   typedef struct {
