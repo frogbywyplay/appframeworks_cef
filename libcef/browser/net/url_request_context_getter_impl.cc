@@ -181,10 +181,7 @@ net::URLRequestContext* CefURLRequestContextGetterImpl::GetURLRequestContext() {
       cache_path = base::FilePath(CefString(&settings_.cache_path));
 
     base::FilePath http_cache_path;
-    if (settings_.http_cache_path.length > 0)
-      http_cache_path = base::FilePath(CefString(&settings_.http_cache_path));
-    else if (!cache_path.empty())
-      http_cache_path = cache_path.Append(FILE_PATH_LITERAL("Cache"));
+    http_cache_path = base::FilePath(CefString(&settings_.http_cache_path));
 
     url_request_context_.reset(new CefURLRequestContextImpl());
     storage_.reset(
