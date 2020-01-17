@@ -257,7 +257,7 @@ void CefBrowserContextImpl::Initialize() {
 
   // Initialize visited links management.
   base::FilePath visited_link_path;
-  if (!cache_path_.empty())
+  if (!cache_path_.empty() && !settings_.dont_persist_visited_links)
      visited_link_path = cache_path_.Append(FILE_PATH_LITERAL("Visited Links"));
   visitedlink_listener_ = new CefVisitedLinkListener;
   visitedlink_master_.reset(

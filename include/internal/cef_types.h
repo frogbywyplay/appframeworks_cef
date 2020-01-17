@@ -403,6 +403,14 @@ typedef struct _cef_settings_t {
   // CefRequestContextSettings.accept_language_list value.
   ///
   cef_string_t accept_language_list;
+
+  ///
+  // Not to persist visited links set this value to true (1). A |cache_path| value
+  // must be specified to persist visited links. Also configurable using the
+  // "dont-persist-visited-links" command-line switch. May be overridden on a
+  // per-browser basis using the CefBrowserSettings.dont_persist_visited_links value.
+  ///
+  int dont_persist_visited_links;
 } cef_settings_t;
 
 ///
@@ -471,6 +479,12 @@ typedef struct _cef_request_context_settings_t {
   // ignored if |cache_path| matches the CefSettings.cache_path value.
   ///
   cef_string_t accept_language_list;
+
+  ///
+  // Not to persist visited links set this value to true (1). A |cache_path| value
+  // must be specified to persist visited links.
+  ///
+  int dont_persist_visited_links;
 } cef_request_context_settings_t;
 
 ///

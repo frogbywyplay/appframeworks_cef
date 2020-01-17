@@ -617,6 +617,7 @@ struct CefSettingsTraits {
 
     cef_string_set(src->accept_language_list.str,
         src->accept_language_list.length, &target->accept_language_list, copy);
+    target->dont_persist_visited_links = src->dont_persist_visited_links;
   }
 };
 
@@ -653,6 +654,7 @@ struct CefRequestContextSettingsTraits {
     target->ignore_certificate_errors = src->ignore_certificate_errors;
     cef_string_set(src->accept_language_list.str,
         src->accept_language_list.length, &target->accept_language_list, copy);
+    target->dont_persist_visited_links = src->dont_persist_visited_links;
   }
 };
 

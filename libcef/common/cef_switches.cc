@@ -76,6 +76,9 @@ const char kPersistSessionCookies[]       = "persist-session-cookies";
 // Persist user preferences.
 const char kPersistUserPreferences[]      = "persist-user-preferences";
 
+// Persist visited links.
+const char kDontPersistVisitedLinks[]     = "dont-persist-visited-links";
+
 // Enable media (WebRTC audio/video) streaming.
 const char kEnableMediaStream[]           = "enable-media-stream";
 

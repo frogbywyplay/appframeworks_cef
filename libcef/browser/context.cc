@@ -411,6 +411,9 @@ void CefContext::PopulateRequestContextSettings(
       command_line->HasSwitch(switches::kIgnoreCertificateErrors);
   CefString(&settings->accept_language_list) =
       CefString(&settings_.accept_language_list);
+  settings->dont_persist_visited_links =
+      settings_.dont_persist_visited_links ||
+      command_line->HasSwitch(switches::kDontPersistVisitedLinks);
 }
 
 void RegisterComponentsForUpdate() {
