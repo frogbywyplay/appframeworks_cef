@@ -40,9 +40,9 @@
 
 # Reviewers
 
-| @username |       name        |        email        
-|----------|-------------------|---------------------
-| @ghaderer | Gauthier Haderer  | ghaderer@wyplay.com
-| @pblin    | Patrice Blin      | pblin@wyplay.com
-| @aamalric | Alexandre AMALRIC | aamalric@wyplay.com
+| @username |       name        
+|----------|-------------------
+| @ghaderer | Gauthier Haderer  
+| @pblin    | Patrice Blin      
+| @aamalric | Alexandre AMALRIC 
 
